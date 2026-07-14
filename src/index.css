@@ -1,0 +1,1412 @@
+/* ── Reset ── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: #ffffff;
+  color: #2f4148;
+  font-family: 'Outfit', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: #285f66;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #214e55;
+}
+
+::selection {
+  background: #a5e7f8;
+  color: #12333b;
+}
+
+input,
+select,
+textarea,
+button {
+  font-family: 'Outfit', system-ui, sans-serif;
+}
+
+/* ── Keyframes ── */
+@keyframes dsPulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.45;
+    transform: scale(0.72);
+  }
+}
+
+@keyframes dsDrift {
+
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(30px, -24px);
+  }
+}
+
+/* ── Scroll reveal ── */
+.ds-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ds-reveal.ds-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Glassmorphism header ── */
+.ds-nav {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.42));
+  backdrop-filter: blur(20px) saturate(165%);
+  -webkit-backdrop-filter: blur(20px) saturate(165%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 8px 32px rgba(27, 71, 84, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+/* Drifting aurora glow behind the frosted glass */
+.ds-nav-aurora {
+  position: absolute;
+  inset: -60% -8% auto -8%;
+  height: 260%;
+  z-index: 0;
+  pointer-events: none;
+  filter: blur(26px);
+  opacity: 0.9;
+  background:
+    radial-gradient(150px 70px at 10% 45%, rgba(165, 231, 248, 0.55), transparent 70%),
+    radial-gradient(190px 80px at 40% 62%, rgba(76, 143, 136, 0.4), transparent 72%),
+    radial-gradient(160px 70px at 68% 34%, rgba(40, 95, 102, 0.32), transparent 72%),
+    radial-gradient(150px 70px at 92% 55%, rgba(165, 231, 248, 0.4), transparent 72%);
+  animation: dsNavAurora 18s ease-in-out infinite alternate;
+}
+
+/* Animated gradient sheen along the bottom edge */
+.ds-nav::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  z-index: 1;
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(165, 231, 248, 0.85),
+      rgba(76, 143, 136, 0.7),
+      transparent);
+  background-size: 200% 100%;
+  animation: dsNavSheen 8s linear infinite;
+}
+
+.ds-nav>*:not(.ds-nav-aurora) {
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes dsNavAurora {
+  0% {
+    transform: translateX(-5%) scale(1);
+  }
+
+  100% {
+    transform: translateX(5%) scale(1.08);
+  }
+}
+
+@keyframes dsNavSheen {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .ds-nav-aurora,
+  .ds-nav::after {
+    animation: none;
+  }
+}
+
+/* ── Hover / focus helpers (the original used custom style-hover attributes) ── */
+.ds-navlink {
+  transition: color 0.25s;
+}
+
+.ds-navlink:hover {
+  color: #285f66;
+}
+
+.ds-nav-cta {
+  transition: background 0.25s;
+}
+
+.ds-nav-cta:hover {
+  background: #214e55;
+  color: #ffffff;
+}
+
+.ds-cta-primary {
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+
+.ds-cta-primary:hover {
+  color: #12333b;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 40px rgba(165, 231, 248, 0.5);
+}
+
+.ds-cta-outline {
+  transition: border-color 0.25s, background 0.25s;
+}
+
+.ds-cta-outline:hover {
+  color: #ffffff;
+  border-color: #a5e7f8;
+  background: rgba(165, 231, 248, 0.08);
+}
+
+.ds-pain-row {
+  transition: background 0.25s;
+}
+
+.ds-pain-row:hover {
+  background: rgba(220, 236, 239, 0.3);
+}
+
+.ds-pill-cta {
+  transition: transform 0.25s;
+}
+
+.ds-pill-cta:hover {
+  color: #12333b;
+  transform: translateY(-2px);
+}
+
+.ds-submit {
+  transition: background 0.25s, transform 0.25s;
+}
+
+.ds-submit:hover {
+  background: #214e55;
+  transform: translateY(-1px);
+}
+
+.ds-footlink {
+  transition: color 0.2s;
+}
+
+.ds-footlink:hover {
+  color: #a5e7f8;
+}
+
+.ds-input {
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.ds-input:focus {
+  outline: none;
+  border-color: #a5e7f8;
+  box-shadow: 0 0 0 3px rgba(165, 231, 248, 0.4);
+}
+
+/* ── Display Cards — Multi-Angle Clinical Imaging ── */
+/* Rounded textured frame that sits behind the stack (right column). The image
+   lives on a ::before layer so its border-radius clips itself, never the cards. */
+.ds-dc-frame {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 140px 100px 20px;
+}
+
+.ds-dc-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  background: url('/frame.webp') center / cover no-repeat;
+  border: 1px solid rgba(27, 71, 84, 0.25);
+  box-shadow: 0 30px 70px rgba(11, 36, 44, 0.26);
+  z-index: 0;
+}
+
+.ds-dc-frame>* {
+  position: relative;
+  z-index: 1;
+}
+
+.ds-dc-stack {
+  display: grid;
+  grid-template-areas: 'stack';
+  place-items: center;
+  width: 100%;
+  min-height: 440px;
+  /* clamp scales the whole stack down on narrower columns without clipping */
+  --dc-w: clamp(260px, 30vw, 384px);
+  --dc-step-x: calc(var(--dc-w) * 0.18);
+  --dc-step-y: 70px;
+}
+
+.ds-dc-card {
+  grid-area: stack;
+  box-sizing: border-box;
+  width: var(--dc-w);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px 30px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 20px 46px rgba(11, 36, 44, 0.24);
+  transform: skewY(-7deg) translate(var(--dc-x, 0px), var(--dc-y, 0px));
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.5s ease, border-color 0.5s ease, opacity 0.5s ease;
+  will-change: transform;
+}
+
+/* fanned stacking: each card sits lower-right of the one before it */
+.ds-dc-card:nth-child(1) {
+  --dc-x: 0px;
+  --dc-y: 0px;
+  z-index: 1;
+  opacity: 0.8;
+}
+
+.ds-dc-card:nth-child(2) {
+  --dc-x: var(--dc-step-x);
+  --dc-y: var(--dc-step-y);
+  z-index: 2;
+  opacity: 0.9;
+}
+
+.ds-dc-card:nth-child(3) {
+  --dc-x: calc(var(--dc-step-x) * 2);
+  --dc-y: calc(var(--dc-step-y) * 2);
+  z-index: 3;
+}
+
+/* bringing the whole stack into focus on hover */
+.ds-dc-stack:hover .ds-dc-card {
+  opacity: 1;
+}
+
+.ds-dc-card:hover {
+  transform: skewY(-7deg) translate(var(--dc-x, 0px), calc(var(--dc-y, 0px) - 16px));
+  box-shadow: 0 30px 64px rgba(27, 71, 84, 0.22);
+  border-color: rgba(40, 95, 102, 0.32);
+  z-index: 10;
+}
+
+.ds-dc-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #285f66;
+  background: rgba(40, 95, 102, 0.1);
+  border: 1px solid rgba(40, 95, 102, 0.16);
+}
+
+/* first card carries the site's primary accent */
+.ds-dc-card--accent .ds-dc-icon {
+  color: #12333b;
+  background: rgba(165, 231, 248, 0.4);
+  border-color: #a5e7f8;
+}
+
+.ds-dc-title {
+  margin: 0;
+  font-size: 19.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #1b4754;
+}
+
+.ds-dc-desc {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.58;
+  color: #6a7c83;
+}
+
+/* fade-up when the section scrolls into view */
+.ds-dc-stack {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ds-dc-stack.ds-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* tablet: keep the stack, tighten the fan slightly */
+@media (max-width: 1200px) {
+  .ds-dc-stack {
+    --dc-step-y: 48px;
+    min-height: 430px;
+  }
+}
+
+/* mobile: cards live below the text, centered, no horizontal overflow */
+@media (max-width: 760px) {
+  .ds-dc-stack {
+    --dc-w: min(300px, 82vw);
+    --dc-step-x: calc(var(--dc-w) * 0.12);
+    --dc-step-y: 44px;
+    min-height: 400px;
+    margin: 0 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .ds-dc-card,
+  .ds-dc-card:hover,
+  .ds-dc-stack {
+    transition: none;
+  }
+
+  .ds-dc-stack {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   Section subtitle (minimal circle + line indicator)
+   ════════════════════════════════════════════════════════════ */
+.ds-sub {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ds-sub-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ds-sub-line {
+  height: 2px;
+  width: 0;
+  margin-left: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.12s;
+}
+
+.ds-sub-text {
+  margin-left: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.5s ease 0.34s, transform 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.34s;
+}
+
+.ds-sub.is-in .ds-sub-dot {
+  opacity: 1;
+}
+
+.ds-sub.is-in .ds-sub-line {
+  width: 52px;
+}
+
+.ds-sub.is-in .ds-sub-text {
+  opacity: 1;
+  transform: none;
+}
+
+/* Dark tone — over dark sections */
+.ds-sub--dark .ds-sub-dot {
+  background: #a5e7f8;
+}
+
+.ds-sub--dark .ds-sub-line {
+  background: rgba(165, 231, 248, 0.5);
+}
+
+.ds-sub--dark .ds-sub-text {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* Light tone — over light sections (contrast-safe) */
+.ds-sub--light .ds-sub-dot {
+  background: #4c8f88;
+}
+
+.ds-sub--light .ds-sub-line {
+  background: rgba(76, 143, 136, 0.5);
+}
+
+.ds-sub--light .ds-sub-text {
+  color: rgba(27, 71, 84, 0.72);
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .ds-sub-dot,
+  .ds-sub-line,
+  .ds-sub-text {
+    transition: none;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   Floating glass navigation (premium SaaS header)
+   ════════════════════════════════════════════════════════════ */
+.ds-fn-wrap {
+  position: fixed;
+  top: 22px;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  display: flex;
+  justify-content: center;
+  padding: 0 4vw;
+  pointer-events: none;
+}
+
+.ds-fn {
+  pointer-events: auto;
+  position: relative;
+  width: 100%;
+  max-width: 1280px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  height: 68px;
+  padding: 0 12px 0 22px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.32));
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: none;
+  box-shadow:
+    0 14px 40px -12px rgba(11, 36, 44, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -1px 1px rgba(27, 71, 84, 0.05);
+  transition: height 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.45s ease, box-shadow 0.45s ease, backdrop-filter 0.45s ease,
+    border-color 0.45s ease;
+}
+
+/* Scrolled: more solid, deeper blur, shorter, stronger shadow */
+.ds-fn.is-scrolled {
+  height: 61px;
+  background: linear-gradient(180deg, rgba(244, 251, 253, 0.86), rgba(232, 245, 248, 0.72));
+  backdrop-filter: blur(26px) saturate(180%);
+  -webkit-backdrop-filter: blur(26px) saturate(180%);
+  border-color: rgba(40, 95, 102, 0.14);
+  box-shadow:
+    0 20px 48px -14px rgba(11, 36, 44, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Logo + glowing accent */
+.ds-fn-logo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.ds-fn-logo img {
+  position: relative;
+  z-index: 1;
+  height: 32px;
+  width: auto;
+  display: block;
+}
+
+.ds-fn-logo-glow {
+  position: absolute;
+  left: -14px;
+  top: 50%;
+  width: 90px;
+  height: 60px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(165, 231, 248, 0.6), rgba(76, 143, 136, 0.18) 45%, transparent 70%);
+  filter: blur(14px);
+  pointer-events: none;
+  animation: dsLogoGlow 6s ease-in-out infinite alternate;
+}
+
+@keyframes dsLogoGlow {
+  0% {
+    opacity: 0.6;
+    transform: translateY(-50%) scale(0.92);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.08);
+  }
+}
+
+/* Center links */
+.ds-fn-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ds-fn-link {
+  position: relative;
+  padding: 9px 15px;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: #2f4148;
+  border-radius: 11px;
+  text-decoration: none;
+  transition: color 0.28s ease, background 0.28s ease;
+}
+
+.ds-fn-link::after {
+  content: '';
+  position: absolute;
+  left: 15px;
+  right: 15px;
+  bottom: 5px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #285f66, #4c8f88 60%, #a5e7f8);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ds-fn-link:hover {
+  color: #285f66;
+  background: rgba(40, 95, 102, 0.06);
+  text-shadow: 0 0 14px rgba(76, 143, 136, 0.35);
+}
+
+.ds-fn-link:hover::after,
+.ds-fn-link.is-active::after {
+  transform: scaleX(1);
+}
+
+.ds-fn-link.is-active {
+  color: #285f66;
+}
+
+/* Right actions */
+.ds-fn-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.ds-fn-signin {
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  color: #2f4148;
+  font-size: 14.5px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 999px;
+  text-decoration: none;
+  transition: background 0.28s ease, color 0.28s ease, border-color 0.28s ease;
+}
+
+.ds-fn-signin:hover {
+  background: rgba(40, 95, 102, 0.08);
+  color: #214e55;
+  border-color: rgba(40, 95, 102, 0.16);
+}
+
+.ds-fn-demo {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  font-family: inherit;
+  border: none;
+  color: #ffffff;
+  font-size: 14.5px;
+  font-weight: 700;
+  padding: 10px 22px;
+  border-radius: 999px;
+  text-decoration: none;
+  background: linear-gradient(135deg, #285f66 0%, #4c8f88 55%, #3f8fa0 100%);
+  box-shadow: 0 8px 22px -4px rgba(40, 95, 102, 0.45);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease, filter 0.28s ease;
+}
+
+.ds-fn-demo::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: skewX(-18deg);
+  transition: left 0.6s ease;
+}
+
+.ds-fn-demo:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+  box-shadow: 0 14px 30px -6px rgba(40, 95, 102, 0.55), 0 0 22px rgba(165, 231, 248, 0.45);
+}
+
+.ds-fn-demo:hover::before {
+  left: 130%;
+}
+
+/* Hamburger (mobile) */
+.ds-fn-burger {
+  display: none;
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(40, 95, 102, 0.16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ds-fn-burger span {
+  position: absolute;
+  left: 12px;
+  width: 20px;
+  height: 2px;
+  border-radius: 2px;
+  background: #1b4754;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease, top 0.35s ease;
+}
+
+.ds-fn-burger span:nth-child(1) {
+  top: 15px;
+}
+
+.ds-fn-burger span:nth-child(2) {
+  top: 21px;
+}
+
+.ds-fn-burger span:nth-child(3) {
+  top: 27px;
+}
+
+.ds-fn-burger.is-open span:nth-child(1) {
+  top: 21px;
+  transform: rotate(45deg);
+}
+
+.ds-fn-burger.is-open span:nth-child(2) {
+  opacity: 0;
+}
+
+.ds-fn-burger.is-open span:nth-child(3) {
+  top: 21px;
+  transform: rotate(-45deg);
+}
+
+/* Fullscreen glass overlay */
+.ds-fn-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(160deg, rgba(18, 51, 59, 0.82), rgba(27, 71, 84, 0.9));
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-12px);
+  transition: opacity 0.4s ease, transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.4s;
+}
+
+.ds-fn-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+}
+
+.ds-fn-overlay a {
+  color: #f1f8fa;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  padding: 10px 18px;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.4s ease, transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), color 0.25s ease;
+}
+
+.ds-fn-overlay.is-open a {
+  opacity: 1;
+  transform: none;
+}
+
+.ds-fn-overlay a:hover {
+  color: #a5e7f8;
+}
+
+.ds-fn-overlay .ds-fn-overlay-actions {
+  margin-top: 22px;
+  display: flex;
+  gap: 14px;
+}
+
+/* Tablet: tighter spacing */
+@media (max-width: 1040px) {
+  .ds-fn-links {
+    gap: 0;
+  }
+
+  .ds-fn-link {
+    padding: 9px 11px;
+    font-size: 14px;
+  }
+
+  .ds-fn {
+    gap: 14px;
+  }
+}
+
+/* Mobile: hamburger + overlay */
+@media (max-width: 860px) {
+
+  .ds-fn-links,
+  .ds-fn-actions {
+    display: none;
+  }
+
+  .ds-fn-burger {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .ds-fn,
+  .ds-fn-demo,
+  .ds-fn-overlay,
+  .ds-fn-overlay a,
+  .ds-fn-logo-glow {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   Hero — split layout with floating phone + AI widgets
+   ════════════════════════════════════════════════════════════ */
+.ds-hero-visual {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 540px;
+}
+
+.ds-hero-phone-tilt {
+  position: relative;
+  z-index: 2;
+  transform: rotate(-4deg);
+  filter: drop-shadow(0 40px 60px rgba(6, 22, 28, 0.5));
+}
+
+.ds-hero-phone-float {
+  animation: dsFloat 6s ease-in-out infinite;
+}
+
+.ds-hero-phone-img {
+  display: block;
+  position: relative;
+  z-index: 2;
+  height: auto;
+  transform: scale(1.3);
+  width: auto;
+  max-width: 100%;
+  filter: drop-shadow(0 30px 55px rgba(6, 22, 28, 0.45));
+}
+
+@keyframes dsFloat {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-16px);
+  }
+}
+
+.ds-hero-widget {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 16px 36px -10px rgba(6, 22, 28, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  color: #f1f8fa;
+  white-space: nowrap;
+}
+
+.ds-hero-widget-ico {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(165, 231, 248, 0.16);
+  border: 1px solid rgba(165, 231, 248, 0.4);
+  color: #a5e7f8;
+}
+
+.ds-hero-widget-t {
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.ds-hero-widget-s {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: rgba(213, 230, 235, 0.7);
+  margin-top: 1px;
+}
+
+.ds-hero-widget--tl {
+  top: 6%;
+  left: -4%;
+  animation: dsFloat 6s ease-in-out infinite;
+}
+
+.ds-hero-widget--r {
+  top: 42%;
+  right: -8%;
+  animation: dsFloat 7s ease-in-out infinite 0.8s;
+}
+
+.ds-hero-widget--bl {
+  bottom: 8%;
+  left: 0;
+  animation: dsFloat 6.5s ease-in-out infinite 0.4s;
+}
+
+@media (max-width: 1180px) {
+  .ds-hero-phone-tilt {
+    transform: rotate(-4deg) scale(0.9);
+  }
+}
+
+@media (max-width: 860px) {
+  .ds-hero-visual {
+    min-height: 460px;
+    margin-top: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .ds-hero-phone-float,
+  .ds-hero-widget {
+    animation: none;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   "That's Why We Built" — premium card (clinical-card bg + phone)
+   ════════════════════════════════════════════════════════════ */
+.ds-why-card {
+  position: relative;
+  border-radius: 32px;
+  min-height: 460px;
+  display: grid;
+  grid-template-columns: 56% 44%;
+  align-items: center;
+  border: none;
+  box-shadow: 0 40px 90px -30px rgba(6, 22, 28, 0.7);
+}
+
+/* same background as the Clinical Reality cards */
+.ds-why-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 32px;
+  overflow: hidden;
+  background: url('/frame-portrait-section.jpg') center / cover no-repeat,
+    linear-gradient(150deg, #12333b, #1b4754 55%, #20525f);
+}
+
+.ds-why-bg::after {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: 0;
+  width: 62%;
+  height: 180%;
+  background: radial-gradient(circle at 60% 45%, rgba(165, 231, 248, 0.18), transparent 60%);
+  pointer-events: none;
+}
+
+.ds-why-left {
+  position: relative;
+  z-index: 2;
+  padding: 56px 64px;
+}
+
+.ds-why-right {
+  position: relative;
+  z-index: 1;
+  align-self: stretch;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+/* Upright, pinned (non-animated) phone image — rises from the card bottom,
+   full natural width (no distortion), flush to the bottom edge. */
+.ds-why-phone-img {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 14px 34px rgba(6, 22, 28, 0.4));
+  transform: scale(1.3);
+  transform-origin: bottom;
+}
+
+@media (max-width: 860px) {
+  .ds-why-card {
+    grid-template-columns: 1fr;
+  }
+
+  .ds-why-left {
+    padding: 44px 32px 0;
+    text-align: center;
+  }
+
+  .ds-why-right {
+    padding: 12px 0 0;
+  }
+
+  .ds-why-phone-img {
+    width: 100%;
+    height: auto;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   Hero v2 — hand mockup rising from the bottom edge + glass cards
+   ════════════════════════════════════════════════════════════ */
+
+/* Subtitle glass pill */
+.ds-hero2-chip {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 17px 9px 15px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #EAF7FB;
+  background: rgba(165, 231, 248, 0.1);
+  border: 1px solid rgba(165, 231, 248, 0.28);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.ds-hero2-chip svg {
+  color: #A5E7F8;
+}
+
+/* Secondary action — circular play + label */
+.ds-hero2-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15.5px;
+  font-weight: 600;
+  color: #EAF7FB;
+  text-decoration: none;
+  transition: color 0.25s ease;
+}
+
+.ds-hero2-play {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #A5E7F8;
+  background: rgba(165, 231, 248, 0.12);
+  border: 1px solid rgba(165, 231, 248, 0.35);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), background 0.28s ease, box-shadow 0.28s ease;
+}
+
+.ds-hero2-secondary:hover {
+  color: #FFFFFF;
+}
+
+.ds-hero2-secondary:hover .ds-hero2-play {
+  transform: scale(1.08);
+  background: rgba(165, 231, 248, 0.22);
+  box-shadow: 0 0 22px rgba(165, 231, 248, 0.4);
+}
+
+/* Stage — holds the device image + floating glass cards. It is anchored to the
+   bottom of the header so the wrist runs off (exits) the section's bottom edge. */
+.ds-hero2-stage {
+  position: relative;
+  /* stretches to fill the grid row (whose height is viewport-based) so the
+     device stays pinned to the bottom edge at any screen height */
+}
+
+.ds-hero2-halo {
+  position: absolute;
+  bottom: 90px;
+  left: 50%;
+  width: 520px;
+  height: 520px;
+  transform: translateX(-58%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(165, 231, 248, 0.22), transparent 66%);
+  filter: blur(12px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* The hand image: pinned to the bottom, oversized and pushed down so the wrist
+   tucks behind the trusted-by strip (which paints on top) — reads as the hand
+   emerging from underneath the strip. */
+.ds-hero2-hand {
+  position: absolute;
+  bottom: -5%;
+  left: 50%;
+  transform: translateX(-64%);
+  width: 600px;
+  max-width: none;
+  height: auto;
+  z-index: 2;
+  filter: drop-shadow(0 40px 70px rgba(6, 22, 28, 0.55));
+  animation: dsHeroHandFloat 8s ease-in-out infinite;
+}
+
+@keyframes dsHeroHandFloat {
+
+  0%,
+  100% {
+    transform: translateX(-64%) translateY(0);
+  }
+
+  50% {
+    transform: translateX(-64%) translateY(-14px);
+  }
+}
+
+/* ── Glass cards (white frosted, dark text — same idea as the reference) ── */
+.ds-gcard {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 17px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 20px 46px -12px rgba(6, 22, 28, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+}
+
+.ds-gcard-t {
+  font-size: 14px;
+  font-weight: 700;
+  color: #16323A;
+  line-height: 1.25;
+}
+
+.ds-gcard-s {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6A7C83;
+  margin-top: 2px;
+}
+
+/* Card 1 — conditions stat, upper-left, clear of the phone's left edge.
+   Vertical position is anchored in px from the bottom (same reference as the
+   bottom-pinned device) so it stays locked to the phone at any hero height. */
+.ds-gcard--stat {
+  bottom: 500px;
+  left: 0;
+  animation: dsGcardFloatA 7s ease-in-out infinite;
+}
+
+.ds-gcard-num {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: #16323A;
+}
+
+/* Card 2 — accuracy, right of the device, upper-mid */
+.ds-gcard--accuracy {
+  bottom: 410px;
+  right: -9%;
+  animation: dsGcardFloatB 7.6s ease-in-out infinite 0.5s;
+}
+
+.ds-gcard-ico {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1E7A5A;
+  background: rgba(34, 160, 110, 0.14);
+  border: 1px solid rgba(34, 160, 110, 0.24);
+}
+
+/* accent (teal) icon variant — used by the conditions stat card */
+.ds-gcard-ico--accent {
+  color: #1B6E7C;
+  background: rgba(40, 95, 102, 0.12);
+  border-color: rgba(40, 95, 102, 0.22);
+}
+
+/* Card 3 — results pill, lower-right of the device */
+.ds-gcard--pill {
+  bottom: 130px;
+  right: -9%;
+  gap: 11px;
+  padding: 12px 20px 12px 13px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #285F66, #4C8F88);
+  border: 1px solid rgba(165, 231, 248, 0.35);
+  box-shadow: 0 18px 40px -10px rgba(40, 95, 102, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  animation: dsGcardFloatA 6.6s ease-in-out infinite 0.3s;
+}
+
+.ds-gcard-pill-ico {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #12333B;
+  background: #A5E7F8;
+}
+
+.ds-gcard-pill-t {
+  font-size: 14px;
+  font-weight: 700;
+  color: #FFFFFF;
+  line-height: 1.2;
+}
+
+.ds-gcard-pill-s {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(234, 247, 251, 0.85);
+  margin-top: 1px;
+}
+
+@keyframes dsGcardFloatA {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes dsGcardFloatB {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(10px);
+  }
+}
+
+/* narrower desktop: scale the stage down so cards stay near the device */
+@media (max-width: 1180px) {
+  .ds-hero2-hand {
+    width: 560px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .ds-hero2-hand,
+  .ds-gcard--stat,
+  .ds-gcard--accuracy,
+  .ds-gcard--pill {
+    animation: none;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   Trusted by — auto-looping marquee
+   ════════════════════════════════════════════════════════════ */
+.ds-trusted {
+  background: #FFFFFF;
+  padding: 22px 0 24px;
+  border-bottom: 1px solid rgba(27, 71, 84, 0.07);
+  flex-shrink: 0;
+  /* Sit above the hand image so the wrist is hidden behind the strip and the
+     hand appears to emerge from underneath it. */
+  position: relative;
+  z-index: 5;
+}
+
+.ds-trusted-label {
+  text-align: center;
+  margin: 0 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(27, 71, 84, 0.5);
+}
+
+.ds-marquee {
+  position: relative;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+
+.ds-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: dsMarquee 32s linear infinite;
+}
+
+.ds-marquee:hover .ds-marquee-track {
+  animation-play-state: paused;
+}
+
+.ds-marquee-group {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.ds-marquee-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 52px;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  color: #1B4754;
+  opacity: 0.42;
+  transition: opacity 0.3s ease, color 0.3s ease;
+}
+
+.ds-marquee-item:hover {
+  opacity: 1;
+  color: #285F66;
+}
+
+@keyframes dsMarquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-marquee-track {
+    animation: none;
+  }
+}
