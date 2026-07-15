@@ -228,13 +228,125 @@ This request was submitted through the DermaScope.ai Early Access program and ma
     `,
   };
 
+  // ── Confirmation email sent TO THE USER ──────────────────────────────────────
+  // A calm, premium "we received your request" message. Table-free, icon-free,
+  // built from stacked blocks with hairline dividers (Apple / Stripe / Linear feel).
+  const nextSteps = [
+    'Your request has been received successfully.',
+    'Our team will review your submission.',
+    'Eligible participants will receive an invitation as Early Access becomes available.',
+    'We will contact you using the email you provided.',
+  ];
+  const highlights = [
+    'AI-assisted analysis for 300+ skin conditions',
+    'Multi-angle clinical imaging',
+    'Structured clinical documentation',
+    'Longitudinal patient monitoring',
+    'Explainable AI with physician oversight',
+  ];
+  const dividedList = (items) =>
+    items
+      .map(
+        (t, i) =>
+          `<div style="padding:13px 0;font-size:15px;line-height:1.65;color:#3E5257;font-family:${FONT};${i > 0 ? 'border-top:1px solid #EEF3F5;' : ''}">${escapeHtml(t)}</div>`,
+      )
+      .join('');
+
+  const confirmationMail = {
+    from:    `"DermaScope.ai" <${process.env.EMAIL_USER}>`,
+    to:      email,
+    subject: 'Welcome to DermaScope.ai — your Early Access request has been received',
+    attachments: [
+      { filename: 'logo.png', path: LOGO_PATH, cid: 'brandlogo' },
+    ],
+    text: `Welcome to DermaScope.ai
+
+Thank you for joining the Early Access program. Your request has been successfully received — you're among the first healthcare professionals interested in experiencing the platform.
+
+What happens next?
+${nextSteps.map((s) => `- ${s}`).join('\n')}
+
+Platform highlights
+${highlights.map((s) => `- ${s}`).join('\n')}
+
+Thank you for your interest in DermaScope.ai. We look forward to welcoming you to DermaScope.ai.
+
+— The DermaScope.ai Team
+
+© ${year} DermaScope.ai — All rights reserved.
+AI outputs are intended to support—not replace—clinical judgment. Every final clinical decision remains in human hands.
+Crafted with love by Human Studio Labs`,
+    html: `
+      <div style="margin:0;padding:0;background:#F4F8F9;">
+        <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#F4F8F9;">Your DermaScope.ai Early Access request has been received.</div>
+        <div style="max-width:600px;margin:0 auto;padding:40px 16px;font-family:${FONT};">
+          <div style="background:#FFFFFF;border-radius:20px;box-shadow:0 12px 40px rgba(18,51,59,0.08);padding:48px 40px 40px;">
+
+            <!-- Logo -->
+            <div style="text-align:center;">
+              <img src="cid:brandlogo" alt="DermaScope.ai" width="180" style="width:180px;max-width:58%;height:auto;display:inline-block;border:0;" />
+            </div>
+
+            <!-- Title -->
+            <div style="text-align:center;margin-top:30px;font-size:24px;line-height:1.3;font-weight:700;letter-spacing:-0.01em;color:#12333B;">Welcome to DermaScope.ai</div>
+
+            <!-- Intro -->
+            <div style="text-align:center;margin:16px auto 0;max-width:470px;font-size:15px;line-height:1.75;color:#5E7178;">
+              Thank you for joining the Early Access program. Your request has been successfully received — you are among the first healthcare professionals interested in experiencing the platform.
+            </div>
+
+            <!-- Divider -->
+            <div style="height:1px;background:#EAF1F3;margin:34px 0;font-size:0;line-height:0;">&nbsp;</div>
+
+            <!-- What happens next -->
+            <div style="font-size:17px;font-weight:700;letter-spacing:-0.01em;color:#12333B;">What happens next?</div>
+            <div style="margin-top:6px;">${dividedList(nextSteps)}</div>
+
+            <!-- Divider -->
+            <div style="height:1px;background:#EAF1F3;margin:34px 0;font-size:0;line-height:0;">&nbsp;</div>
+
+            <!-- Platform highlights -->
+            <div style="font-size:17px;font-weight:700;letter-spacing:-0.01em;color:#12333B;">Platform highlights</div>
+            <div style="margin-top:6px;font-size:14px;line-height:1.7;color:#7A8B92;">A closer look at what DermaScope.ai brings to clinical skin assessment.</div>
+            <div style="margin-top:6px;">${dividedList(highlights)}</div>
+
+            <!-- Divider -->
+            <div style="height:1px;background:#EAF1F3;margin:34px 0;font-size:0;line-height:0;">&nbsp;</div>
+
+            <!-- Closing -->
+            <div style="font-size:15px;line-height:1.75;color:#3E5257;">Thank you for your interest in DermaScope.ai. We look forward to welcoming you to DermaScope.ai.</div>
+            <div style="margin-top:18px;font-size:15px;font-weight:600;color:#1B4754;">— The DermaScope.ai Team</div>
+
+            <!-- Footer -->
+            <div style="height:1px;background:#EAF1F3;margin:36px 0 24px;font-size:0;line-height:0;">&nbsp;</div>
+            <div style="text-align:center;">
+              <div style="font-size:12px;color:#8A9BA1;line-height:1.6;">&copy; ${year} DermaScope.ai — All rights reserved.</div>
+              <div style="margin:12px auto 0;max-width:450px;font-size:11.5px;color:#A6B4B9;line-height:1.7;">AI outputs are intended to support—not replace—clinical judgment. Every final clinical decision remains in human hands.</div>
+              <div style="margin-top:16px;font-size:11px;color:#B7C3C7;">Crafted with <span style="color:#E0736E;">&#10084;</span> by Human Studio Labs</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    `,
+  };
+
   try {
+    // Internal notification is the critical send — its failure fails the request.
     await transporter.sendMail(mailOptions);
-    return res.status(200).json({ success: true, message: 'Email sent successfully.' });
   } catch (err) {
     console.error('Nodemailer error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to send email. Please try again.' });
   }
+
+  // Confirmation to the user is best-effort — never blocks the submission.
+  try {
+    await transporter.sendMail(confirmationMail);
+  } catch (err) {
+    console.error('Confirmation email error:', err.message);
+  }
+
+  return res.status(200).json({ success: true, message: 'Email sent successfully.' });
 });
 
 // ─── Health check ─────────────────────────────────────────────────────────────
