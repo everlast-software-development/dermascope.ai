@@ -70,36 +70,37 @@ function emailLayout({ preheader = '', body = '' }) {
 <meta name="supported-color-schemes" content="light" />
 <title>DermaScope.ai</title>
 <style>
-  body { margin:0; padding:0; background:#EBF2F6; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+  body { margin:0; padding:0; background:#F4FAFD; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
   a { text-decoration:none; }
   .dsa-cta { transition: background-color .2s ease, box-shadow .2s ease, transform .2s ease; }
   .dsa-cta:hover { background-color:#21525A !important; box-shadow:0 16px 32px -12px rgba(18,51,59,0.55) !important; transform:translateY(-1px); }
   @media only screen and (max-width:640px) {
-    .dsa-pad { padding-left:28px !important; padding-right:28px !important; }
-    .dsa-head { padding-top:46px !important; padding-bottom:34px !important; }
-    .dsa-foot { padding-top:40px !important; padding-bottom:44px !important; }
+    .dsa-card { padding:34px 26px 30px !important; }
     .dsa-h1 { font-size:26px !important; }
   }
 </style>
 </head>
-<body style="margin:0;padding:0;background:#EBF2F6;font-family:${FONT};">
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#EBF2F6;">${preheader}</div>
-  <div style="width:100%;background:#EBF2F6;padding:40px 16px;">
-    <div class="dsa-card" style="max-width:620px;margin:0 auto;background:#FFFFFF;border-radius:24px;overflow:hidden;box-shadow:0 30px 70px -24px rgba(18,51,59,0.22);">
+<body style="margin:0;padding:0;background:#F4FAFD;font-family:${FONT};">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#F4FAFD;">${preheader}</div>
+  <div style="width:100%;background:#F4FAFD;padding:44px 16px;">
 
-      <!-- Header — soft light blue that blends down into the white body -->
-      <div class="dsa-head" style="background-color:#E5F1F8;background-image:linear-gradient(180deg,#E3F0F8 0%, #F1F8FC 60%, #FFFFFF 100%);padding:60px 48px 42px;text-align:center;">
-        <img src="cid:brandlogo" alt="DermaScope.ai" width="200" style="width:200px;max-width:66%;height:auto;display:inline-block;border:0;" />
+    <!-- Single centered white card — everything lives inside it -->
+    <div class="dsa-card" style="max-width:620px;margin:0 auto;background:#FFFFFF;border-radius:22px;overflow:hidden;box-shadow:0 24px 60px -22px rgba(18,51,59,0.20);padding:52px 52px 40px;">
+
+      <!-- Logo -->
+      <div style="text-align:center;">
+        <img src="cid:brandlogo" alt="DermaScope.ai" width="190" style="width:190px;max-width:60%;height:auto;display:inline-block;border:0;" />
       </div>
 
-      <!-- Body -->
-      <div class="dsa-pad" style="padding:14px 52px 48px;">${body}
+      <!-- Content -->
+      <div style="margin-top:38px;">${body}
       </div>
 
-      <!-- Footer — same light blue, blending up from the white body to frame it -->
-      <div class="dsa-pad dsa-foot" style="background-color:#E5F1F8;background-image:linear-gradient(180deg,#FFFFFF 0%, #F1F8FC 44%, #E3F0F8 100%);padding:48px 52px 54px;text-align:center;">
-        <div style="font-size:13px;line-height:1.7;color:#51636B;font-family:${FONT};">&copy; ${year} DermaScope.ai — All rights reserved.</div>
-        <div style="margin:14px auto 0;max-width:440px;font-size:12.5px;line-height:1.8;color:#7C8D94;font-family:${FONT};">AI outputs are intended to support&mdash;not replace&mdash;clinical judgment. Every final clinical decision remains in human hands.</div>
+      <!-- Footer, inside the card, set off by a subtle divider -->
+      <div style="height:1px;background:#EAF1F4;margin:42px 0 0;font-size:0;line-height:0;">&nbsp;</div>
+      <div style="text-align:center;padding-top:28px;">
+        <div style="font-size:12.5px;line-height:1.7;color:#8496A0;font-family:${FONT};">&copy; ${year} DermaScope.ai — All rights reserved.</div>
+        <div style="margin:12px auto 0;max-width:430px;font-size:11.5px;line-height:1.8;color:#9FADB4;font-family:${FONT};">AI outputs are intended to support&mdash;not replace&mdash;clinical judgment. Every final clinical decision remains in human hands.</div>
       </div>
 
     </div>
