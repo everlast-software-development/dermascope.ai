@@ -83,16 +83,16 @@ app.post('/api/contact', async (req, res) => {
   // including any the form adds later. Known keys get a friendly label + icon
   // and a sensible order; unknown keys are included with a prettified label.
   const FIELD_META = {
-    name:         { label: 'Full Name',             icon: '👤' },
-    email:        { label: 'Email',                 icon: '📧', isEmail: true },
-    org:          { label: 'Clinic / Organization', icon: '🏥' },
-    organization: { label: 'Clinic / Organization', icon: '🏥' },
-    company:      { label: 'Clinic / Organization', icon: '🏥' },
-    role:         { label: 'Role',                  icon: '💼' },
-    country:      { label: 'Country',               icon: '🌍' },
-    phone:        { label: 'Phone',                 icon: '📱' },
-    message:      { label: 'Additional Notes',      icon: '📝', isLong: true },
-    notes:        { label: 'Additional Notes',      icon: '📝', isLong: true },
+    name:         { label: 'Full Name' },
+    email:        { label: 'Email Address', isEmail: true },
+    org:          { label: 'Clinic / Organization' },
+    organization: { label: 'Clinic / Organization' },
+    company:      { label: 'Clinic / Organization' },
+    role:         { label: 'Role' },
+    country:      { label: 'Country' },
+    phone:        { label: 'Phone' },
+    message:      { label: 'Additional Notes' },
+    notes:        { label: 'Additional Notes' },
   };
   const FIELD_ORDER = ['name', 'email', 'org', 'organization', 'company', 'role', 'country', 'phone', 'message', 'notes'];
 
@@ -108,39 +108,30 @@ app.post('/api/contact', async (req, res) => {
     if (used.has(key)) return;
     const raw = body[key];
     if (raw == null || String(raw).trim() === '') return;
-    const meta = FIELD_META[key] || { label: prettify(key), icon: '•' };
+    const meta = FIELD_META[key] || { label: prettify(key) };
     fields.push({
       label: meta.label,
-      icon: meta.icon,
       value: String(raw).trim(),
       isEmail: !!meta.isEmail,
-      isLong: !!meta.isLong,
     });
     used.add(key);
   };
   FIELD_ORDER.forEach(addField);        // preferred fields, in order
   Object.keys(body).forEach(addField);  // then any additional submitted fields
 
-  // Each field is an elegant section (icon + label, value below) separated by a
-  // hairline divider — no boxed table, no heavy outlines.
+  // Each field is rendered like a read-only premium form input: an uppercase
+  // muted label above a soft, borderless rounded value block. No tables, icons,
+  // dividers or cards. Multi-line values expand naturally (like a textarea).
   const fieldsHtml = fields.map((f, i) => {
-    const value = f.isEmail
-      ? `<a href="mailto:${escapeHtml(f.value)}" style="font-size:16px;color:#285F66;text-decoration:none;font-weight:600;font-family:${FONT};">${escapeHtml(f.value)}</a>`
-      : f.isLong
-        ? `<div style="margin-top:6px;padding:16px 18px;background:#F4F9FB;border-radius:12px;font-size:15px;color:#46595F;line-height:1.7;white-space:pre-wrap;font-family:${FONT};">${escapeHtml(f.value)}</div>`
-        : `<span style="font-size:16px;color:#1B4754;font-weight:600;font-family:${FONT};">${escapeHtml(f.value)}</span>`;
-    const divider = i < fields.length - 1
-      ? `<tr><td style="padding:0;font-size:0;line-height:0;"><div style="height:1px;background:#EAF1F3;font-size:0;line-height:0;">&nbsp;</div></td></tr>`
-      : '';
+    const inner = f.isEmail
+      ? `<a href="mailto:${escapeHtml(f.value)}" style="color:#1B4754;text-decoration:none;">${escapeHtml(f.value)}</a>`
+      : escapeHtml(f.value);
+    const mb = i === fields.length - 1 ? '0' : '24px';
     return `
-              <tr>
-                <td style="padding:17px 0;">
-                  <div style="font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:#8A9BA1;font-weight:700;margin-bottom:7px;font-family:${FONT};">
-                    <span style="font-size:14px;">${f.icon}</span>&nbsp;&nbsp;${escapeHtml(f.label)}
-                  </div>
-                  ${value}
-                </td>
-              </tr>${divider}`;
+              <div style="margin:0 0 ${mb};">
+                <div style="font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:#8A9BA1;font-weight:600;margin:0 0 9px;font-family:${FONT};">${escapeHtml(f.label)}</div>
+                <div style="background:#F5F9FC;border-radius:14px;padding:15px 18px;font-size:16px;color:#1B4754;font-weight:500;line-height:1.6;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word;font-family:${FONT};">${inner}</div>
+              </div>`;
   }).join('');
 
   const fieldsText = fields.map((f) => `${f.label}: ${f.value}`).join('\n');
@@ -183,7 +174,7 @@ This request was submitted through the DermaScope.ai Early Access program and ma
                   <td align="center" style="padding:26px 40px 0;font-family:${FONT};">
                     <div style="font-size:23px;line-height:1.3;font-weight:700;letter-spacing:-0.01em;color:#12333B;">New Early Access Request</div>
                     <div style="margin-top:10px;font-size:15px;line-height:1.6;color:#5E7178;">A new user has submitted the Join Early Access form.</div>
-                    <div style="margin-top:16px;font-size:12px;color:#9AAAB0;letter-spacing:0.3px;">🕐&nbsp;&nbsp;${submittedAt} (GST)</div>
+                    <div style="margin-top:16px;font-size:12px;color:#9AAAB0;letter-spacing:0.3px;">Submitted&nbsp;&middot;&nbsp;${submittedAt} (GST)</div>
                   </td>
                 </tr>
 
@@ -201,9 +192,7 @@ This request was submitted through the DermaScope.ai Early Access program and ma
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding:2px 40px 0;">
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${fieldsHtml}
-                    </table>
+                  <td style="padding:16px 40px 0;font-family:${FONT};">${fieldsHtml}
                   </td>
                 </tr>
 
@@ -213,7 +202,7 @@ This request was submitted through the DermaScope.ai Early Access program and ma
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#EEF8FB;border-radius:14px;">
                       <tr>
                         <td style="padding:20px 22px;font-family:${FONT};">
-                          <div style="font-size:12px;letter-spacing:0.5px;text-transform:uppercase;font-weight:700;color:#1B6E7C;margin-bottom:8px;">💡&nbsp;&nbsp;Why this matters</div>
+                          <div style="font-size:12px;letter-spacing:0.5px;text-transform:uppercase;font-weight:700;color:#1B6E7C;margin-bottom:8px;">Why this matters</div>
                           <div style="font-size:14px;line-height:1.7;color:#4A5E64;">This request was submitted through the DermaScope.ai Early Access program and may represent a potential customer interested in joining the platform.</div>
                         </td>
                       </tr>
