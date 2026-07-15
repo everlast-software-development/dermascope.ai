@@ -235,9 +235,10 @@ This request was submitted through the DermaScope.ai Early Access program and ma
   };
 
   // ── Confirmation email sent TO THE USER ──────────────────────────────────────
-  // A calm, premium "we received your request" message that mirrors the landing
-  // page: centered card, soft shadow, a subtle brand separator and one clear CTA.
-  // Table-free, icon-free, emoji-free.
+  // A fully standalone template (independent of the admin notification /
+  // emailLayout): a clean WHITE page with one centered white card set off by a
+  // soft shadow + rounded corners, generous whitespace, logo → welcome → short
+  // message → a single primary CTA → footer. Minimal, premium, table/icon-free.
   const SITE_URL = process.env.SITE_URL || 'https://dermascope.ai';
 
   const confirmationMail = {
@@ -257,25 +258,59 @@ Visit DermaScope.ai: ${SITE_URL}
 
 © ${year} DermaScope.ai — All rights reserved.
 AI outputs are intended to support—not replace—clinical judgment. Every final clinical decision remains in human hands.`,
-    html: emailLayout({
-      preheader: 'We’ve received your DermaScope.ai Early Access request.',
-      body: `
-            <div style="text-align:center;margin-top:10px;">
-              <div class="dsa-h1" style="font-size:30px;line-height:1.22;font-weight:700;letter-spacing:-0.022em;color:#12333B;">Welcome to DermaScope.ai</div>
+    html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light only" />
+<meta name="supported-color-schemes" content="light" />
+<title>Welcome to DermaScope.ai</title>
+<style>
+  body { margin:0; padding:0; background:#FFFFFF; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+  a { text-decoration:none; }
+  .dsc-cta { transition: background-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+  .dsc-cta:hover { background-color:#21525A !important; box-shadow:0 16px 32px -12px rgba(18,51,59,0.55) !important; transform:translateY(-1px); }
+  @media only screen and (max-width:640px) {
+    .dsc-wrap { padding:36px 18px !important; }
+    .dsc-card { padding:40px 28px 34px !important; }
+    .dsc-h1 { font-size:26px !important; }
+  }
+</style>
+</head>
+<body style="margin:0;padding:0;background:#FFFFFF;font-family:${FONT};">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#FFFFFF;">We&rsquo;ve received your DermaScope.ai Early Access request.</div>
+  <div class="dsc-wrap" style="width:100%;background:#FFFFFF;padding:64px 24px;">
 
-              <div style="width:48px;height:3px;border-radius:3px;background:#A5E7F8;margin:24px auto 0;font-size:0;line-height:0;">&nbsp;</div>
+    <!-- Single centered white card, set off from the white page by a soft shadow -->
+    <div class="dsc-card" style="max-width:600px;margin:0 auto;background:#FFFFFF;border-radius:22px;overflow:hidden;box-shadow:0 14px 48px -12px rgba(18,51,59,0.18);padding:56px 56px 44px;text-align:center;">
 
-              <div style="margin:30px auto 0;max-width:472px;font-size:16.5px;line-height:1.85;color:#243746;">
-                Thank you for joining our Early Access program. We&rsquo;ve successfully received your request.
-                <br /><br />
-                Our team will review your submission and will contact you as soon as Early Access becomes available.
-              </div>
+      <img src="cid:brandlogo" alt="DermaScope.ai" width="190" style="width:190px;max-width:60%;height:auto;display:inline-block;border:0;" />
 
-              <div style="margin-top:40px;">
-                <a class="dsa-cta" href="${SITE_URL}" target="_blank" style="display:inline-block;background-color:#285F66;color:#FFFFFF;font-size:16px;font-weight:700;line-height:1;text-decoration:none;padding:18px 44px;border-radius:999px;letter-spacing:0.01em;font-family:${FONT};box-shadow:0 12px 26px -12px rgba(27,71,84,0.5);">Visit DermaScope.ai</a>
-              </div>
-            </div>`,
-    }),
+      <div class="dsc-h1" style="margin-top:40px;font-size:30px;line-height:1.22;font-weight:700;letter-spacing:-0.022em;color:#12333B;">Welcome to DermaScope.ai</div>
+
+      <div style="width:48px;height:3px;border-radius:3px;background:#A5E7F8;margin:24px auto 0;font-size:0;line-height:0;">&nbsp;</div>
+
+      <div style="margin:30px auto 0;max-width:452px;font-size:16.5px;line-height:1.85;color:#243746;">
+        Thank you for joining our Early Access program. We&rsquo;ve successfully received your request.
+        <br /><br />
+        Our team will review your submission and will be in touch as soon as Early Access becomes available.
+      </div>
+
+      <div style="margin-top:40px;">
+        <a class="dsc-cta" href="${SITE_URL}" target="_blank" style="display:inline-block;background-color:#285F66;color:#FFFFFF;font-size:16px;font-weight:700;line-height:1;text-decoration:none;padding:18px 44px;border-radius:999px;letter-spacing:0.01em;font-family:${FONT};box-shadow:0 12px 26px -12px rgba(27,71,84,0.5);">Visit DermaScope.ai</a>
+      </div>
+
+      <div style="height:1px;background:#EAF1F4;margin:46px 0 0;font-size:0;line-height:0;">&nbsp;</div>
+      <div style="padding-top:28px;">
+        <div style="font-size:12.5px;line-height:1.7;color:#8496A0;">&copy; ${year} DermaScope.ai — All rights reserved.</div>
+        <div style="margin:12px auto 0;max-width:430px;font-size:11.5px;line-height:1.8;color:#9FADB4;">AI outputs are intended to support&mdash;not replace&mdash;clinical judgment. Every final clinical decision remains in human hands.</div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>`,
   };
 
   try {
