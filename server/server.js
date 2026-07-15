@@ -47,6 +47,49 @@ transporter.verify((err) => {
   else console.log('  ✓  SMTP connected and ready');
 });
 
+// ─── Shared email design system ───────────────────────────────────────────────
+// Brand font stack: Outfit (brand) with robust, email-safe system fallbacks.
+const FONT = "'Outfit','Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+
+// One premium shell every DermaScope.ai email is poured into, so the internal
+// notification and the user confirmation share the exact same design language:
+//   · a light frosted-glass header — a soft radial blue gradient with a gentle
+//     top glow and a hairline bottom border (true backdrop-blur isn't supported
+//     in email, so the frosted feel is built from the gradient + glow);
+//   · a clean white body with generous spacing;
+//   · a soft-navy footer with a smooth white→navy fade above it.
+// Table-free; every gradient carries a `background-color` fallback for Outlook.
+function emailLayout({ preheader = '', body = '' }) {
+  const year = new Date().getFullYear();
+  return `
+    <div style="margin:0;padding:0;background:#EAF3F7;">
+      <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#EAF3F7;">${preheader}</div>
+      <div style="max-width:600px;margin:0 auto;padding:34px 16px;font-family:${FONT};">
+        <div style="border-radius:24px;overflow:hidden;box-shadow:0 22px 60px rgba(18,51,59,0.12);">
+
+          <!-- Frosted-glass header: soft blue gradient + gentle top glow -->
+          <div style="background-color:#E7F2F8;background-image:radial-gradient(120% 150% at 50% 0%, #F7FBFD 0%, #E8F3F9 55%, #D9EDF6 100%);padding:52px 40px;text-align:center;border-bottom:1px solid rgba(27,71,84,0.08);">
+            <img src="cid:brandlogo" alt="DermaScope.ai" width="188" style="width:188px;max-width:62%;height:auto;display:inline-block;border:0;" />
+          </div>
+
+          <!-- Body -->
+          <div style="background:#FFFFFF;padding:46px 44px 48px;">${body}
+          </div>
+
+          <!-- Smooth white → navy transition -->
+          <div style="height:40px;background-color:#143741;background-image:linear-gradient(180deg,#FFFFFF 0%, #143741 100%);font-size:0;line-height:0;">&nbsp;</div>
+
+          <!-- Soft navy footer -->
+          <div style="background-color:#143741;background-image:linear-gradient(180deg,#143741 0%, #0E2A31 100%);padding:8px 40px 46px;text-align:center;">
+            <div style="font-size:12px;line-height:1.6;color:rgba(233,244,247,0.74);font-family:${FONT};">&copy; ${year} DermaScope.ai — All rights reserved.</div>
+            <div style="margin:12px auto 0;max-width:460px;font-size:11.5px;line-height:1.75;color:rgba(233,244,247,0.5);font-family:${FONT};">AI outputs are intended to support&mdash;not replace&mdash;clinical judgment. Every final clinical decision remains in human hands.</div>
+          </div>
+
+        </div>
+      </div>
+    </div>`;
+}
+
 // ─── Validate contact payload ─────────────────────────────────────────────────
 // Matches the early-access form: name + email are required; role, org and
 // message are optional.
@@ -75,9 +118,6 @@ app.post('/api/contact', async (req, res) => {
     timeStyle: 'short',
     timeZone: 'Asia/Dubai',
   }).format(now);
-
-  // Brand font stack: Outfit (brand) with robust, email-safe system fallbacks.
-  const FONT = "'Outfit','Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
   // Build the applicant fields dynamically so EVERY submitted field is shown —
   // including any the form adds later. Known keys get a friendly label + icon
@@ -154,103 +194,33 @@ Why this matters
 This request was submitted through the DermaScope.ai Early Access program and may represent a potential customer interested in joining the platform.
 
 © ${year} DermaScope.ai — All rights reserved.`,
-    html: `
-      <div style="margin:0;padding:0;background:#F4F8F9;">
-        <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#F4F8F9;">New Early Access request from ${escapeHtml(name)}</div>
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F4F8F9;">
-          <tr>
-            <td align="center" style="padding:40px 16px;">
-              <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:#FFFFFF;border-radius:20px;overflow:hidden;box-shadow:0 12px 40px rgba(18,51,59,0.08);">
+    html: emailLayout({
+      preheader: `New Early Access request from ${escapeHtml(name)}`,
+      body: `
+            <div style="text-align:center;">
+              <div style="font-size:23px;line-height:1.3;font-weight:700;letter-spacing:-0.015em;color:#12333B;">New Early Access Request</div>
+              <div style="margin-top:10px;font-size:15px;line-height:1.6;color:#5E7178;">A new user has submitted the Join Early Access form.</div>
+              <div style="margin-top:16px;font-size:12px;color:#9AAAB0;letter-spacing:0.3px;">Submitted&nbsp;&middot;&nbsp;${submittedAt} (GST)</div>
+            </div>
 
-                <!-- Logo -->
-                <tr>
-                  <td align="center" style="padding:46px 40px 0;">
-                    <img src="cid:brandlogo" alt="DermaScope.ai" width="180" style="width:180px;max-width:58%;height:auto;display:inline-block;border:0;" />
-                  </td>
-                </tr>
+            <div style="height:1px;background:#EAF1F3;margin:32px 0;font-size:0;line-height:0;">&nbsp;</div>
 
-                <!-- Title + intro + timestamp -->
-                <tr>
-                  <td align="center" style="padding:26px 40px 0;font-family:${FONT};">
-                    <div style="font-size:23px;line-height:1.3;font-weight:700;letter-spacing:-0.01em;color:#12333B;">New Early Access Request</div>
-                    <div style="margin-top:10px;font-size:15px;line-height:1.6;color:#5E7178;">A new user has submitted the Join Early Access form.</div>
-                    <div style="margin-top:16px;font-size:12px;color:#9AAAB0;letter-spacing:0.3px;">Submitted&nbsp;&middot;&nbsp;${submittedAt} (GST)</div>
-                  </td>
-                </tr>
+            <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:#4C8F88;font-family:${FONT};">Applicant Information</div>
+            <div style="margin-top:16px;">${fieldsHtml}
+            </div>
 
-                <!-- Divider -->
-                <tr>
-                  <td style="padding:30px 40px 0;">
-                    <div style="height:1px;background:#EAF1F3;font-size:0;line-height:0;">&nbsp;</div>
-                  </td>
-                </tr>
-
-                <!-- Applicant information -->
-                <tr>
-                  <td style="padding:26px 40px 0;font-family:${FONT};">
-                    <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:#4C8F88;">Applicant Information</div>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:16px 40px 0;font-family:${FONT};">${fieldsHtml}
-                  </td>
-                </tr>
-
-                <!-- Callout -->
-                <tr>
-                  <td style="padding:30px 40px 0;">
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#EEF8FB;border-radius:14px;">
-                      <tr>
-                        <td style="padding:20px 22px;font-family:${FONT};">
-                          <div style="font-size:12px;letter-spacing:0.5px;text-transform:uppercase;font-weight:700;color:#1B6E7C;margin-bottom:8px;">Why this matters</div>
-                          <div style="font-size:14px;line-height:1.7;color:#4A5E64;">This request was submitted through the DermaScope.ai Early Access program and may represent a potential customer interested in joining the platform.</div>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-
-                <!-- Footer -->
-                <tr>
-                  <td style="padding:34px 40px 42px;text-align:center;font-family:${FONT};">
-                    <div style="height:1px;background:#EAF1F3;font-size:0;line-height:0;margin-bottom:26px;">&nbsp;</div>
-                    <div style="font-size:12px;color:#8A9BA1;line-height:1.6;">&copy; ${year} DermaScope.ai — All rights reserved.</div>
-                    <div style="margin:12px auto 0;max-width:440px;font-size:11.5px;color:#A6B4B9;line-height:1.7;">AI outputs are intended to support — not replace — clinical judgment. Every final clinical decision remains in human hands.</div>
-                    <div style="margin-top:16px;font-size:11px;color:#B7C3C7;">Crafted with <span style="color:#E0736E;">&#10084;</span> by Human Studio Labs</div>
-                  </td>
-                </tr>
-
-              </table>
-            </td>
-          </tr>
-        </table>
-      </div>
-    `,
+            <div style="margin-top:30px;background:#EEF8FB;border-radius:14px;padding:20px 22px;">
+              <div style="font-size:12px;letter-spacing:0.5px;text-transform:uppercase;font-weight:700;color:#1B6E7C;margin-bottom:8px;font-family:${FONT};">Why this matters</div>
+              <div style="font-size:14px;line-height:1.7;color:#4A5E64;font-family:${FONT};">This request was submitted through the DermaScope.ai Early Access program and may represent a potential customer interested in joining the platform.</div>
+            </div>`,
+    }),
   };
 
   // ── Confirmation email sent TO THE USER ──────────────────────────────────────
-  // A calm, premium "we received your request" message. Table-free, icon-free,
-  // built from stacked blocks with hairline dividers (Apple / Stripe / Linear feel).
-  const nextSteps = [
-    'Your request has been received successfully.',
-    'Our team will review your submission.',
-    'Eligible participants will receive an invitation as Early Access becomes available.',
-    'We will contact you using the email you provided.',
-  ];
-  const highlights = [
-    'AI-assisted analysis for 300+ skin conditions',
-    'Multi-angle clinical imaging',
-    'Structured clinical documentation',
-    'Longitudinal patient monitoring',
-    'Explainable AI with physician oversight',
-  ];
-  const dividedList = (items) =>
-    items
-      .map(
-        (t, i) =>
-          `<div style="padding:13px 0;font-size:15px;line-height:1.65;color:#3E5257;font-family:${FONT};${i > 0 ? 'border-top:1px solid #EEF3F5;' : ''}">${escapeHtml(t)}</div>`,
-      )
-      .join('');
+  // A calm, premium "we received your request" message that mirrors the landing
+  // page: centered card, soft shadow, a subtle brand separator and one clear CTA.
+  // Table-free, icon-free, emoji-free.
+  const SITE_URL = process.env.SITE_URL || 'https://dermascope.ai';
 
   const confirmationMail = {
     from:    `"DermaScope.ai" <${process.env.EMAIL_USER}>`,
@@ -261,74 +231,31 @@ This request was submitted through the DermaScope.ai Early Access program and ma
     ],
     text: `Welcome to DermaScope.ai
 
-Thank you for joining the Early Access program. Your request has been successfully received — you're among the first healthcare professionals interested in experiencing the platform.
+Thank you for joining our Early Access program. We've successfully received your request.
 
-What happens next?
-${nextSteps.map((s) => `- ${s}`).join('\n')}
+Our team will review your submission and will contact you as soon as Early Access becomes available.
 
-Platform highlights
-${highlights.map((s) => `- ${s}`).join('\n')}
-
-Thank you for your interest in DermaScope.ai. We look forward to welcoming you to DermaScope.ai.
-
-— The DermaScope.ai Team
+Visit DermaScope.ai: ${SITE_URL}
 
 © ${year} DermaScope.ai — All rights reserved.
-AI outputs are intended to support—not replace—clinical judgment. Every final clinical decision remains in human hands.
-Crafted with love by Human Studio Labs`,
-    html: `
-      <div style="margin:0;padding:0;background:#F4F8F9;">
-        <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#F4F8F9;">Your DermaScope.ai Early Access request has been received.</div>
-        <div style="max-width:600px;margin:0 auto;padding:40px 16px;font-family:${FONT};">
-          <div style="background:#FFFFFF;border-radius:20px;box-shadow:0 12px 40px rgba(18,51,59,0.08);padding:48px 40px 40px;">
+AI outputs are intended to support—not replace—clinical judgment. Every final clinical decision remains in human hands.`,
+    html: emailLayout({
+      preheader: 'We’ve received your DermaScope.ai Early Access request.',
+      body: `
+            <div style="text-align:center;font-size:25px;line-height:1.3;font-weight:700;letter-spacing:-0.015em;color:#12333B;">Welcome to DermaScope.ai</div>
 
-            <!-- Logo -->
-            <div style="text-align:center;">
-              <img src="cid:brandlogo" alt="DermaScope.ai" width="180" style="width:180px;max-width:58%;height:auto;display:inline-block;border:0;" />
+            <div style="width:46px;height:3px;border-radius:3px;background:#A5E7F8;margin:22px auto 0;font-size:0;line-height:0;">&nbsp;</div>
+
+            <div style="text-align:center;margin:28px auto 0;max-width:456px;font-size:15.5px;line-height:1.8;color:#5E7178;">
+              Thank you for joining our Early Access program. We&rsquo;ve successfully received your request.
+              <br /><br />
+              Our team will review your submission and will contact you as soon as Early Access becomes available.
             </div>
 
-            <!-- Title -->
-            <div style="text-align:center;margin-top:30px;font-size:24px;line-height:1.3;font-weight:700;letter-spacing:-0.01em;color:#12333B;">Welcome to DermaScope.ai</div>
-
-            <!-- Intro -->
-            <div style="text-align:center;margin:16px auto 0;max-width:470px;font-size:15px;line-height:1.75;color:#5E7178;">
-              Thank you for joining the Early Access program. Your request has been successfully received — you are among the first healthcare professionals interested in experiencing the platform.
-            </div>
-
-            <!-- Divider -->
-            <div style="height:1px;background:#EAF1F3;margin:34px 0;font-size:0;line-height:0;">&nbsp;</div>
-
-            <!-- What happens next -->
-            <div style="font-size:17px;font-weight:700;letter-spacing:-0.01em;color:#12333B;">What happens next?</div>
-            <div style="margin-top:6px;">${dividedList(nextSteps)}</div>
-
-            <!-- Divider -->
-            <div style="height:1px;background:#EAF1F3;margin:34px 0;font-size:0;line-height:0;">&nbsp;</div>
-
-            <!-- Platform highlights -->
-            <div style="font-size:17px;font-weight:700;letter-spacing:-0.01em;color:#12333B;">Platform highlights</div>
-            <div style="margin-top:6px;font-size:14px;line-height:1.7;color:#7A8B92;">A closer look at what DermaScope.ai brings to clinical skin assessment.</div>
-            <div style="margin-top:6px;">${dividedList(highlights)}</div>
-
-            <!-- Divider -->
-            <div style="height:1px;background:#EAF1F3;margin:34px 0;font-size:0;line-height:0;">&nbsp;</div>
-
-            <!-- Closing -->
-            <div style="font-size:15px;line-height:1.75;color:#3E5257;">Thank you for your interest in DermaScope.ai. We look forward to welcoming you to DermaScope.ai.</div>
-            <div style="margin-top:18px;font-size:15px;font-weight:600;color:#1B4754;">— The DermaScope.ai Team</div>
-
-            <!-- Footer -->
-            <div style="height:1px;background:#EAF1F3;margin:36px 0 24px;font-size:0;line-height:0;">&nbsp;</div>
-            <div style="text-align:center;">
-              <div style="font-size:12px;color:#8A9BA1;line-height:1.6;">&copy; ${year} DermaScope.ai — All rights reserved.</div>
-              <div style="margin:12px auto 0;max-width:450px;font-size:11.5px;color:#A6B4B9;line-height:1.7;">AI outputs are intended to support—not replace—clinical judgment. Every final clinical decision remains in human hands.</div>
-              <div style="margin-top:16px;font-size:11px;color:#B7C3C7;">Crafted with <span style="color:#E0736E;">&#10084;</span> by Human Studio Labs</div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-    `,
+            <div style="text-align:center;margin-top:38px;">
+              <a href="${SITE_URL}" target="_blank" style="display:inline-block;background:#285F66;color:#FFFFFF;font-size:15px;font-weight:600;line-height:1;text-decoration:none;padding:16px 36px;border-radius:999px;letter-spacing:0.01em;font-family:${FONT};">Visit DermaScope.ai</a>
+            </div>`,
+    }),
   };
 
   try {
