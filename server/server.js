@@ -61,52 +61,33 @@ const FONT = "'Outfit','Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 // Table-free; every gradient carries a `background-color` fallback for Outlook.
 function emailLayout({ preheader = '', body = '' }) {
   const year = new Date().getFullYear();
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="color-scheme" content="light only" />
-<meta name="supported-color-schemes" content="light" />
-<title>DermaScope.ai</title>
-<style>
-  body { margin:0; padding:0; background:#F4FAFD; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
-  a { text-decoration:none; }
-  .dsa-cta { transition: background-color .2s ease, box-shadow .2s ease, transform .2s ease; }
-  .dsa-cta:hover { background-color:#21525A !important; box-shadow:0 16px 32px -12px rgba(18,51,59,0.55) !important; transform:translateY(-1px); }
-  @media only screen and (max-width:640px) {
-    .dsa-card { padding:34px 26px 30px !important; }
-    .dsa-h1 { font-size:26px !important; }
-  }
-</style>
-</head>
-<body style="margin:0;padding:0;background:#F4FAFD;font-family:${FONT};">
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#F4FAFD;">${preheader}</div>
-  <div style="width:100%;background:#F4FAFD;padding:44px 16px;">
+  return `
+    <div style="margin:0;padding:0;background:#EAF3F7;">
+      <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#EAF3F7;">${preheader}</div>
+      <div style="max-width:600px;margin:0 auto;padding:34px 16px;font-family:${FONT};">
+        <div style="border-radius:24px;overflow:hidden;box-shadow:0 22px 60px rgba(18,51,59,0.12);">
 
-    <!-- Single centered white card — everything lives inside it -->
-    <div class="dsa-card" style="max-width:620px;margin:0 auto;background:#FFFFFF;border-radius:22px;overflow:hidden;box-shadow:0 24px 60px -22px rgba(18,51,59,0.20);padding:52px 52px 40px;">
+          <!-- Frosted-glass header: soft blue gradient + gentle top glow -->
+          <div style="background-color:#E7F2F8;background-image:radial-gradient(120% 150% at 50% 0%, #F7FBFD 0%, #E8F3F9 55%, #D9EDF6 100%);padding:52px 40px;text-align:center;border-bottom:1px solid rgba(27,71,84,0.08);">
+            <img src="cid:brandlogo" alt="DermaScope.ai" width="188" style="width:188px;max-width:62%;height:auto;display:inline-block;border:0;" />
+          </div>
 
-      <!-- Logo -->
-      <div style="text-align:center;">
-        <img src="cid:brandlogo" alt="DermaScope.ai" width="190" style="width:190px;max-width:60%;height:auto;display:inline-block;border:0;" />
+          <!-- Body -->
+          <div style="background:#FFFFFF;padding:46px 44px 48px;">${body}
+          </div>
+
+          <!-- Smooth white → navy transition -->
+          <div style="height:40px;background-color:#143741;background-image:linear-gradient(180deg,#FFFFFF 0%, #143741 100%);font-size:0;line-height:0;">&nbsp;</div>
+
+          <!-- Soft navy footer -->
+          <div style="background-color:#143741;background-image:linear-gradient(180deg,#143741 0%, #0E2A31 100%);padding:8px 40px 46px;text-align:center;">
+            <div style="font-size:12px;line-height:1.6;color:rgba(233,244,247,0.74);font-family:${FONT};">&copy; ${year} DermaScope.ai — All rights reserved.</div>
+            <div style="margin:12px auto 0;max-width:460px;font-size:11.5px;line-height:1.75;color:rgba(233,244,247,0.5);font-family:${FONT};">AI outputs are intended to support&mdash;not replace&mdash;clinical judgment. Every final clinical decision remains in human hands.</div>
+          </div>
+
+        </div>
       </div>
-
-      <!-- Content -->
-      <div style="margin-top:38px;">${body}
-      </div>
-
-      <!-- Footer, inside the card, set off by a subtle divider -->
-      <div style="height:1px;background:#EAF1F4;margin:42px 0 0;font-size:0;line-height:0;">&nbsp;</div>
-      <div style="text-align:center;padding-top:28px;">
-        <div style="font-size:12.5px;line-height:1.7;color:#8496A0;font-family:${FONT};">&copy; ${year} DermaScope.ai — All rights reserved.</div>
-        <div style="margin:12px auto 0;max-width:430px;font-size:11.5px;line-height:1.8;color:#9FADB4;font-family:${FONT};">AI outputs are intended to support&mdash;not replace&mdash;clinical judgment. Every final clinical decision remains in human hands.</div>
-      </div>
-
-    </div>
-  </div>
-</body>
-</html>`;
+    </div>`;
 }
 
 // ─── Validate contact payload ─────────────────────────────────────────────────
@@ -185,11 +166,11 @@ app.post('/api/contact', async (req, res) => {
     const inner = f.isEmail
       ? `<a href="mailto:${escapeHtml(f.value)}" style="color:#1B4754;text-decoration:none;">${escapeHtml(f.value)}</a>`
       : escapeHtml(f.value);
-    const mb = i === fields.length - 1 ? '0' : '26px';
+    const mb = i === fields.length - 1 ? '0' : '24px';
     return `
               <div style="margin:0 0 ${mb};">
-                <div style="font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:#7A8B92;font-weight:600;margin:0 0 10px;font-family:${FONT};">${escapeHtml(f.label)}</div>
-                <div style="background:#F4F9FC;border-radius:14px;padding:17px 20px;font-size:16.5px;color:#243746;font-weight:500;line-height:1.65;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word;font-family:${FONT};">${inner}</div>
+                <div style="font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:#8A9BA1;font-weight:600;margin:0 0 9px;font-family:${FONT};">${escapeHtml(f.label)}</div>
+                <div style="background:#F5F9FC;border-radius:14px;padding:15px 18px;font-size:16px;color:#1B4754;font-weight:500;line-height:1.6;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word;font-family:${FONT};">${inner}</div>
               </div>`;
   }).join('');
 
@@ -217,28 +198,29 @@ This request was submitted through the DermaScope.ai Early Access program and ma
       preheader: `New Early Access request from ${escapeHtml(name)}`,
       body: `
             <div style="text-align:center;">
-              <div class="dsa-h1" style="font-size:28px;line-height:1.25;font-weight:700;letter-spacing:-0.02em;color:#12333B;">New Early Access Request</div>
-              <div style="margin-top:14px;font-size:16px;line-height:1.7;color:#4A5E64;">A new user has submitted the Join Early Access form.</div>
-              <div style="margin-top:18px;font-size:12.5px;color:#98A8AE;letter-spacing:0.3px;">Submitted&nbsp;&middot;&nbsp;${submittedAt} (GST)</div>
+              <div style="font-size:23px;line-height:1.3;font-weight:700;letter-spacing:-0.015em;color:#12333B;">New Early Access Request</div>
+              <div style="margin-top:10px;font-size:15px;line-height:1.6;color:#5E7178;">A new user has submitted the Join Early Access form.</div>
+              <div style="margin-top:16px;font-size:12px;color:#9AAAB0;letter-spacing:0.3px;">Submitted&nbsp;&middot;&nbsp;${submittedAt} (GST)</div>
             </div>
 
-            <div style="height:1px;background:#EAF1F3;margin:38px 0;font-size:0;line-height:0;">&nbsp;</div>
+            <div style="height:1px;background:#EAF1F3;margin:32px 0;font-size:0;line-height:0;">&nbsp;</div>
 
-            <div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:#4C8F88;font-family:${FONT};">Applicant Information</div>
-            <div style="margin-top:20px;">${fieldsHtml}
+            <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:#4C8F88;font-family:${FONT};">Applicant Information</div>
+            <div style="margin-top:16px;">${fieldsHtml}
             </div>
 
-            <div style="margin-top:36px;background:#EDF7FB;border-radius:16px;padding:24px 26px;">
-              <div style="font-size:12.5px;letter-spacing:0.6px;text-transform:uppercase;font-weight:700;color:#1B6E7C;margin-bottom:10px;font-family:${FONT};">Why this matters</div>
-              <div style="font-size:15px;line-height:1.75;color:#3A4E54;font-family:${FONT};">This request was submitted through the DermaScope.ai Early Access program and may represent a potential customer interested in joining the platform.</div>
+            <div style="margin-top:30px;background:#EEF8FB;border-radius:14px;padding:20px 22px;">
+              <div style="font-size:12px;letter-spacing:0.5px;text-transform:uppercase;font-weight:700;color:#1B6E7C;margin-bottom:8px;font-family:${FONT};">Why this matters</div>
+              <div style="font-size:14px;line-height:1.7;color:#4A5E64;font-family:${FONT};">This request was submitted through the DermaScope.ai Early Access program and may represent a potential customer interested in joining the platform.</div>
             </div>`,
     }),
   };
 
   // ── Confirmation email sent TO THE USER ──────────────────────────────────────
-  // A calm, premium "we received your request" message that mirrors the landing
-  // page: centered card, soft shadow, a subtle brand separator and one clear CTA.
-  // Table-free, icon-free, emoji-free.
+  // A completely standalone, premium template (independent of the admin
+  // notification / emailLayout): one centered white card on a light-blue page,
+  // logo → welcome → short message → a single primary CTA → footer. Minimal,
+  // brand-coloured, table-free, icon-free, emoji-free.
   const SITE_URL = process.env.SITE_URL || 'https://dermascope.ai';
 
   const confirmationMail = {
@@ -258,25 +240,58 @@ Visit DermaScope.ai: ${SITE_URL}
 
 © ${year} DermaScope.ai — All rights reserved.
 AI outputs are intended to support—not replace—clinical judgment. Every final clinical decision remains in human hands.`,
-    html: emailLayout({
-      preheader: 'We’ve received your DermaScope.ai Early Access request.',
-      body: `
-            <div style="text-align:center;margin-top:10px;">
-              <div class="dsa-h1" style="font-size:30px;line-height:1.22;font-weight:700;letter-spacing:-0.022em;color:#12333B;">Welcome to DermaScope.ai</div>
+    html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light only" />
+<meta name="supported-color-schemes" content="light" />
+<title>Welcome to DermaScope.ai</title>
+<style>
+  body { margin:0; padding:0; background:#F4FAFD; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+  a { text-decoration:none; }
+  .dsc-cta { transition: background-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+  .dsc-cta:hover { background-color:#21525A !important; box-shadow:0 16px 32px -12px rgba(18,51,59,0.55) !important; transform:translateY(-1px); }
+  @media only screen and (max-width:640px) {
+    .dsc-card { padding:40px 28px 34px !important; }
+    .dsc-h1 { font-size:26px !important; }
+  }
+</style>
+</head>
+<body style="margin:0;padding:0;background:#F4FAFD;font-family:${FONT};">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#F4FAFD;">We&rsquo;ve received your DermaScope.ai Early Access request.</div>
+  <div style="width:100%;background:#F4FAFD;padding:48px 16px;">
 
-              <div style="width:48px;height:3px;border-radius:3px;background:#A5E7F8;margin:24px auto 0;font-size:0;line-height:0;">&nbsp;</div>
+    <!-- Single centered white card -->
+    <div class="dsc-card" style="max-width:600px;margin:0 auto;background:#FFFFFF;border-radius:22px;overflow:hidden;box-shadow:0 24px 60px -22px rgba(18,51,59,0.20);padding:56px 56px 44px;text-align:center;">
 
-              <div style="margin:30px auto 0;max-width:472px;font-size:16.5px;line-height:1.85;color:#243746;">
-                Thank you for joining our Early Access program. We&rsquo;ve successfully received your request.
-                <br /><br />
-                Our team will review your submission and will contact you as soon as Early Access becomes available.
-              </div>
+      <img src="cid:brandlogo" alt="DermaScope.ai" width="190" style="width:190px;max-width:60%;height:auto;display:inline-block;border:0;" />
 
-              <div style="margin-top:40px;">
-                <a class="dsa-cta" href="${SITE_URL}" target="_blank" style="display:inline-block;background-color:#285F66;color:#FFFFFF;font-size:16px;font-weight:700;line-height:1;text-decoration:none;padding:18px 44px;border-radius:999px;letter-spacing:0.01em;font-family:${FONT};box-shadow:0 12px 26px -12px rgba(27,71,84,0.5);">Visit DermaScope.ai</a>
-              </div>
-            </div>`,
-    }),
+      <div class="dsc-h1" style="margin-top:40px;font-size:30px;line-height:1.22;font-weight:700;letter-spacing:-0.022em;color:#12333B;">Welcome to DermaScope.ai</div>
+
+      <div style="width:48px;height:3px;border-radius:3px;background:#A5E7F8;margin:24px auto 0;font-size:0;line-height:0;">&nbsp;</div>
+
+      <div style="margin:30px auto 0;max-width:452px;font-size:16.5px;line-height:1.85;color:#243746;">
+        Thank you for joining our Early Access program. We&rsquo;ve successfully received your request.
+        <br /><br />
+        Our team will review your submission and will be in touch as soon as Early Access becomes available.
+      </div>
+
+      <div style="margin-top:40px;">
+        <a class="dsc-cta" href="${SITE_URL}" target="_blank" style="display:inline-block;background-color:#285F66;color:#FFFFFF;font-size:16px;font-weight:700;line-height:1;text-decoration:none;padding:18px 44px;border-radius:999px;letter-spacing:0.01em;font-family:${FONT};box-shadow:0 12px 26px -12px rgba(27,71,84,0.5);">Visit DermaScope.ai</a>
+      </div>
+
+      <div style="height:1px;background:#EAF1F4;margin:46px 0 0;font-size:0;line-height:0;">&nbsp;</div>
+      <div style="padding-top:28px;">
+        <div style="font-size:12.5px;line-height:1.7;color:#8496A0;">&copy; ${year} DermaScope.ai — All rights reserved.</div>
+        <div style="margin:12px auto 0;max-width:430px;font-size:11.5px;line-height:1.8;color:#9FADB4;">AI outputs are intended to support&mdash;not replace&mdash;clinical judgment. Every final clinical decision remains in human hands.</div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>`,
   };
 
   try {
