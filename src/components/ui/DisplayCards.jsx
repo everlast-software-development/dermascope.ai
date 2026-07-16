@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useResponsive } from '../../hooks/useResponsive'
 
 // Display Cards — a fanned, skewed stack of glass cards. Content is passed in
 // via `cards`; each entry is { icon, title, description, accent }. Styling lives
@@ -18,6 +19,30 @@ function DisplayCard({ icon, title, description, accent }) {
 export default function DisplayCards({ cards = [] }) {
   const ref = useRef(null)
   const [visible, setVisible] = useState(false)
+  const { isMobile, isTablet } = useResponsive()
+
+  // Inline overrides win over the .ds-dc-* class values. Desktop (>1024px)
+  // leaves these undefined so the CSS-defined fan is untouched. On smaller
+  // screens the stack is scaled down and the fan tightened so the third card's
+  // offset can never push past a narrow container (no overflow at 360px).
+  const stackStyle = isMobile
+    ? {
+        '--dc-w': 'min(240px, 74vw)',
+        '--dc-step-x': 'calc(var(--dc-w) * 0.08)',
+        '--dc-step-y': '38px',
+        minHeight: 320,
+        maxWidth: '100%',
+        margin: '0 auto',
+      }
+    : isTablet
+      ? {
+          '--dc-w': 'clamp(240px, 32vw, 320px)',
+          '--dc-step-x': 'calc(var(--dc-w) * 0.14)',
+          '--dc-step-y': '48px',
+          minHeight: 400,
+          maxWidth: '100%',
+        }
+      : undefined
 
   // Fade-up the whole stack when it enters the viewport (reduced-motion safe).
   useEffect(() => {
@@ -49,7 +74,7 @@ export default function DisplayCards({ cards = [] }) {
   }, [])
 
   return (
-    <div ref={ref} className={`ds-dc-stack${visible ? ' ds-visible' : ''}`}>
+    <div ref={ref} className={`ds-dc-stack${visible ? ' ds-visible' : ''}`} style={stackStyle}>
       {cards.map((card, i) => (
         <DisplayCard key={card.title || i} {...card} />
       ))}

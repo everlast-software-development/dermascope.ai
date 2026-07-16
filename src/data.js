@@ -40,6 +40,7 @@ export const painPoints = [
   },
   {
     title: 'Clinical Decisions Require More Than Images',
+    image: '/Clinical%20Decisions.webp',
     body: 'Effective skin assessment often depends on combining clinical history, visual findings, previous records, and professional expertise—not image interpretation alone.',
     tagsLabel: 'Clinical Inputs',
     tags: [
@@ -52,6 +53,7 @@ export const painPoints = [
   },
   {
     title: 'Documentation Is Time-Consuming',
+    image: '/Documentation.webp',
     body: 'Clinical documentation must be accurate, structured, and consistent to support patient care, communication, research, and regulatory requirements.',
     tagsLabel: 'Documentation',
     tags: [
@@ -64,6 +66,7 @@ export const painPoints = [
   },
   {
     title: 'Tracking Progress Is Often Subjective',
+    image: '/Tracking%20Progress.webp',
     body: 'Without standardized imaging and objective comparison, monitoring healing, disease progression, and treatment response can vary between clinicians and visits.',
     tagsLabel: 'Monitoring',
     tags: [
@@ -76,6 +79,7 @@ export const painPoints = [
   },
   {
     title: 'Clinical Data Is Often Fragmented',
+    image: '/Clinical%20Data.jpeg',
     body: 'Images, clinical notes, follow-up records, and patient information are frequently stored across multiple systems, making collaboration and continuity of care more difficult.',
     tagsLabel: 'Fragmented Data',
     tags: [

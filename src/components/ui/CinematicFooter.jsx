@@ -2,6 +2,7 @@ import * as React from 'react'
 import { useEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { useResponsive } from '../../hooks/useResponsive'
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger)
@@ -245,6 +246,7 @@ export default function CinematicFooter() {
   const giantTextRef = useRef(null)
   const headingRef = useRef(null)
   const linksRef = useRef(null)
+  const { isMobile, isTablet } = useResponsive()
 
   useEffect(() => {
     if (typeof window === 'undefined' || !wrapperRef.current) return
@@ -354,9 +356,11 @@ export default function CinematicFooter() {
               left: '50%',
               transform: 'translateX(-50%)',
               whiteSpace: 'nowrap',
+              maxWidth: '100%',
               zIndex: 0,
               pointerEvents: 'none',
               userSelect: 'none',
+              ...(isMobile ? { fontSize: '22vw' } : isTablet ? { fontSize: '24vw' } : null),
             }}
           >
             DERMASCOPE
@@ -407,8 +411,8 @@ export default function CinematicFooter() {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '0 24px',
-              marginTop: 80,
+              padding: isMobile ? '0 16px' : '0 24px',
+              marginTop: isMobile ? 56 : isTablet ? 72 : 80,
               width: '100%',
               maxWidth: 1024,
               marginLeft: 'auto',
@@ -422,7 +426,7 @@ export default function CinematicFooter() {
                 fontSize: 'clamp(48px,7vw,96px)',
                 fontWeight: 900,
                 letterSpacing: '-0.03em',
-                marginBottom: 48,
+                marginBottom: isMobile ? 28 : isTablet ? 40 : 48,
                 textAlign: 'center',
               }}
             >
@@ -468,17 +472,17 @@ export default function CinematicFooter() {
               position: 'relative',
               zIndex: 20,
               width: '100%',
-              paddingBottom: 32,
-              paddingLeft: 48,
-              paddingRight: 48,
+              paddingBottom: isMobile ? 24 : 32,
+              paddingLeft: isMobile ? 20 : isTablet ? 32 : 48,
+              paddingRight: isMobile ? 20 : isTablet ? 32 : 48,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 24,
+              justifyContent: isMobile ? 'center' : 'space-between',
+              gap: isMobile ? 16 : 24,
               flexWrap: 'wrap',
             }}
           >
-            <div style={{ maxWidth: 420 }}>
+            <div style={{ maxWidth: 420, width: isMobile ? '100%' : undefined, textAlign: isMobile ? 'center' : 'left' }}>
               <div
                 style={{
                   color: 'rgba(213,230,235,0.66)',

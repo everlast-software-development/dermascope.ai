@@ -1,3 +1,5 @@
+import { useResponsive } from '../../hooks/useResponsive'
+
 // Reusable iPhone mockup. Internal proportions are fixed for a 264px frame, so
 // scale the whole thing with a CSS transform when a much larger size is needed.
 // Frame finishes — 'graphite' (default) and 'teal' (teal titanium).
@@ -13,8 +15,13 @@ export default function PhoneMockup({
   src = '/phone-report.png',
   frame = 'graphite',
 }) {
+  const { isMobile, isTablet } = useResponsive()
+  // Cap the fixed-px frame so it can never exceed a narrow parent; desktop keeps
+  // its exact fixed width (maxWidth stays undefined above 1024px).
+  const capWidth = isMobile || isTablet
+
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', maxWidth: capWidth ? '100%' : undefined }}>
       {glow && (
         <div
           style={{
@@ -30,6 +37,7 @@ export default function PhoneMockup({
         style={{
           position: 'relative',
           width,
+          maxWidth: capWidth ? '100%' : undefined,
           borderRadius: 58,
           padding: 11,
           background: FRAMES[frame] || FRAMES.graphite,

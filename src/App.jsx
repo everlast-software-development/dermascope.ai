@@ -1,4 +1,3 @@
-import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import PainPoints from './components/PainPoints'
 import WhyDermaScope from './components/WhyDermaScope'
@@ -11,10 +10,10 @@ import CinematicFooter from './components/ui/CinematicFooter'
 
 export default function App() {
   return (
-    // The original design is a fixed desktop layout — keep the min-width so
-    // proportions hold, and clip horizontal overflow from the decorative blobs.
-    <div style={{ minWidth: 1100, overflowX: 'clip' }}>
-      <Navbar />
+    // Fluid layout: no min-width lock so tablet/mobile can reflow. Desktop
+    // (>1024px) keeps its original proportions via each section's max-width
+    // containers. `overflowX: clip` still contains the decorative blobs.
+    <div style={{ overflowX: 'clip' }}>
       <Hero />
       <PainPoints />
       <WhyDermaScope />

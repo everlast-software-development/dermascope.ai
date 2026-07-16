@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import Reveal from './Reveal'
 import SectionSubtitle from './SectionSubtitle'
 import { steps } from '../data'
+import { useResponsive } from '../hooks/useResponsive'
 
 const STEP_SECONDS = 5
 
@@ -47,7 +48,7 @@ function PhoneMockup({ alt }) {
   )
 }
 
-function MediaLayer({ media, active, position }) {
+function MediaLayer({ media, active, position, isMobile }) {
   const translateY = active ? 0 : position === 'past' ? -60 : 60
   const isPhone = media.type === 'phone'
 
@@ -59,7 +60,7 @@ function MediaLayer({ media, active, position }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: isPhone ? 0 : 44,
+        padding: isPhone ? 0 : isMobile ? 20 : 44,
         transition: 'opacity .6s ease,transform .6s ease',
         opacity: active ? 1 : 0,
         transform: `translateY(${translateY}px)`,
@@ -98,6 +99,7 @@ function MediaLayer({ media, active, position }) {
 }
 
 export default function HowItWorks() {
+  const { isMobile, isTablet } = useResponsive()
   const [step, setStep] = useState(0)
   const [progress, setProgress] = useState(0)
   const [playing, setPlaying] = useState(true)
@@ -141,20 +143,27 @@ export default function HowItWorks() {
   }
 
   return (
-    <section id="how" ref={sectionRef} style={section}>
+    <section
+      id="how"
+      ref={sectionRef}
+      style={{
+        ...section,
+        padding: isMobile ? '64px 20px' : isTablet ? '80px 32px' : section.padding,
+      }}
+    >
       <div
         style={{
           position: 'absolute',
           top: -160,
           left: -140,
-          width: 520,
-          height: 520,
+          width: isMobile ? 320 : 520,
+          height: isMobile ? 320 : 520,
           borderRadius: '50%',
           background: 'radial-gradient(circle,rgba(165,231,248,0.14),transparent 65%)',
         }}
       />
       <div style={{ position: 'relative', maxWidth: 1240, margin: '0 auto' }}>
-        <Reveal style={{ maxWidth: 720, marginBottom: 70 }}>
+        <Reveal style={{ maxWidth: 720, marginBottom: isMobile ? 40 : isTablet ? 54 : 70 }}>
           <SectionSubtitle label="How It Works" tone="dark" />
           <h2
             style={{
@@ -170,7 +179,14 @@ export default function HowItWorks() {
           </h2>
         </Reveal>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile || isTablet ? '1fr' : '1fr 1fr',
+            gap: isMobile ? 32 : isTablet ? 48 : 80,
+            alignItems: 'center',
+          }}
+        >
           {/* Steps */}
           <div style={{ display: 'grid', gap: 8 }}>
             {steps.map((s, i) => {
@@ -263,7 +279,8 @@ export default function HowItWorks() {
           <div
             style={{
               position: 'relative',
-              height: 680,
+              width: '100%',
+              height: isMobile ? 440 : isTablet ? 560 : 680,
               borderRadius: 28,
               border: '1px solid rgba(165,231,248,0.18)',
               background: 'rgba(255,255,255,0.03)',
@@ -276,6 +293,7 @@ export default function HowItWorks() {
                 media={s.media}
                 active={i === step}
                 position={i < step ? 'past' : 'future'}
+                isMobile={isMobile}
               />
             ))}
           </div>

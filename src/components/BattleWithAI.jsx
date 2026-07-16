@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import Reveal from './Reveal'
 import SectionSubtitle from './SectionSubtitle'
 import { dermCases } from '../data'
+import { useResponsive } from '../hooks/useResponsive'
 
 const section = {
   position: 'relative',
@@ -25,6 +26,7 @@ const LETTERS = ['A', 'B', 'C', 'D']
 const INITIAL_CASE = Math.floor(Math.random() * dermCases.length)
 
 export default function BattleWithAI() {
+  const { isMobile, isTablet } = useResponsive()
   const [caseIdx, setCaseIdx] = useState(INITIAL_CASE)
   const [selected, setSelected] = useState(-1)
   const [phase, setPhase] = useState('pick') // 'pick' | 'ai' | 'res'
@@ -118,14 +120,20 @@ export default function BattleWithAI() {
   }
 
   return (
-    <section id="battle" style={section}>
+    <section
+      id="battle"
+      style={{
+        ...section,
+        padding: isMobile ? '64px 20px' : isTablet ? '80px 32px' : section.padding,
+      }}
+    >
       <div
         style={{
           position: 'absolute',
           top: -160,
           right: -140,
-          width: 520,
-          height: 520,
+          width: isMobile ? 300 : 520,
+          height: isMobile ? 300 : 520,
           borderRadius: '50%',
           background: 'radial-gradient(circle,rgba(165,231,248,0.14),transparent 65%)',
         }}
@@ -136,8 +144,8 @@ export default function BattleWithAI() {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-end',
-            gap: 48,
-            marginBottom: 56,
+            gap: isMobile ? 20 : isTablet ? 32 : 48,
+            marginBottom: isMobile ? 32 : isTablet ? 42 : 56,
             flexWrap: 'wrap',
           }}
         >
@@ -187,8 +195,8 @@ export default function BattleWithAI() {
         <Reveal
           style={{
             display: 'grid',
-            gridTemplateColumns: '0.9fr 1.1fr',
-            gap: 64,
+            gridTemplateColumns: isMobile || isTablet ? '1fr' : '0.9fr 1.1fr',
+            gap: isMobile ? 28 : isTablet ? 36 : 64,
             alignItems: 'start',
           }}
         >
@@ -197,6 +205,9 @@ export default function BattleWithAI() {
             style={{
               position: 'relative',
               aspectRatio: '1/1',
+              width: '100%',
+              maxWidth: isMobile ? 360 : isTablet ? 460 : '100%',
+              margin: isMobile || isTablet ? '0 auto' : undefined,
               borderRadius: 24,
               overflow: 'hidden',
               border: '1px dashed rgba(165,231,248,0.3)',
@@ -241,7 +252,7 @@ export default function BattleWithAI() {
             <p
               style={{
                 margin: '0 0 24px',
-                fontSize: 20,
+                fontSize: isMobile ? 18 : 20,
                 lineHeight: 1.55,
                 fontWeight: 500,
                 color: '#FFFFFF',
@@ -341,7 +352,7 @@ export default function BattleWithAI() {
                     border: '1px solid rgba(165,231,248,0.3)',
                     background: 'rgba(165,231,248,0.05)',
                     borderRadius: 18,
-                    padding: '24px 26px',
+                    padding: isMobile ? '20px 18px' : '24px 26px',
                   }}
                 >
                   <div
@@ -419,7 +430,7 @@ export default function BattleWithAI() {
                     border: '1px solid rgba(165,231,248,0.3)',
                     background: 'rgba(165,231,248,0.05)',
                     borderRadius: 18,
-                    padding: '26px 28px',
+                    padding: isMobile ? '20px 18px' : '26px 28px',
                   }}
                 >
                   <div
@@ -443,7 +454,7 @@ export default function BattleWithAI() {
                       {won ? 'You matched the AI — well spotted' : 'The AI saw it differently'}
                     </div>
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: '#FFFFFF', marginBottom: 14 }}>
+                  <div style={{ fontSize: isMobile ? 18 : 20, fontWeight: 700, color: '#FFFFFF', marginBottom: 14 }}>
                     AI diagnosis: <span style={{ color: '#A5E7F8' }}>{c.opts[c.answer]}</span>
                   </div>
                   <p style={{ margin: '0 0 12px', fontSize: 14.5, lineHeight: 1.65, color: '#D5E6EB' }}>
@@ -515,7 +526,7 @@ export default function BattleWithAI() {
 
         <p
           style={{
-            margin: '48px 0 0',
+            margin: isMobile ? '32px 0 0' : '48px 0 0',
             textAlign: 'center',
             fontSize: 12.5,
             color: 'rgba(213,230,235,0.6)',

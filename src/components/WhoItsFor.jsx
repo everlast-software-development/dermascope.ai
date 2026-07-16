@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Reveal from './Reveal'
 import SectionSubtitle from './SectionSubtitle'
 import { personas } from '../data'
+import { useResponsive } from '../hooks/useResponsive'
 
 const section = { background: '#FFFFFF', padding: '110px 48px 120px', scrollMarginTop: 70 }
 
@@ -17,11 +18,18 @@ const listItem = { display: 'flex', gap: 12, fontSize: 15.5, lineHeight: 1.55, c
 export default function WhoItsFor() {
   const [persona, setPersona] = useState(0)
   const p = personas[persona]
+  const { isMobile, isTablet } = useResponsive()
 
   return (
-    <section id="who" style={section}>
+    <section
+      id="who"
+      style={{
+        ...section,
+        padding: isMobile ? '64px 20px 72px' : isTablet ? '84px 32px 90px' : section.padding,
+      }}
+    >
       <div style={{ maxWidth: 1240, margin: '0 auto' }}>
-        <Reveal style={{ maxWidth: 760, marginBottom: 64 }}>
+        <Reveal style={{ maxWidth: 760, marginBottom: isMobile ? 40 : isTablet ? 52 : 64 }}>
           <SectionSubtitle label="Who Is DermaScope.ai Built For?" tone="light" />
           <h2
             style={{
@@ -37,8 +45,15 @@ export default function WhoItsFor() {
           </h2>
         </Reveal>
 
-        <Reveal style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 64, alignItems: 'start' }}>
-          <div style={{ display: 'grid', gap: 6, position: 'sticky', top: 96 }}>
+        <Reveal
+          style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : isTablet ? '240px 1fr' : '320px 1fr',
+            gap: isMobile ? 28 : isTablet ? 40 : 64,
+            alignItems: 'start',
+          }}
+        >
+          <div style={{ display: 'grid', gap: 6, position: isMobile ? 'static' : 'sticky', top: 96 }}>
             {personas.map((opt, i) => (
               <button
                 key={opt.tab}
@@ -61,11 +76,30 @@ export default function WhoItsFor() {
             ))}
           </div>
 
-          <div style={{ minHeight: 480, borderLeft: '1px solid #DCECEF', paddingLeft: 64 }}>
-            <h3 style={{ margin: '0 0 34px', fontSize: 27, fontWeight: 700, color: '#1B4754' }}>
+          <div
+            style={{
+              minHeight: isMobile ? 0 : 480,
+              borderLeft: isMobile ? 'none' : '1px solid #DCECEF',
+              paddingLeft: isMobile ? 0 : isTablet ? 40 : 64,
+            }}
+          >
+            <h3
+              style={{
+                margin: isMobile ? '0 0 22px' : '0 0 34px',
+                fontSize: isMobile ? 22 : 27,
+                fontWeight: 700,
+                color: '#1B4754',
+              }}
+            >
               {p.heading}
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56 }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                gap: isMobile ? 28 : isTablet ? 36 : 56,
+              }}
+            >
               <div>
                 <div style={{ ...colLabel, color: '#7A8B92' }}>Challenges</div>
                 <div style={{ display: 'grid', gap: 14 }}>

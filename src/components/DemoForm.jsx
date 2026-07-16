@@ -2,6 +2,7 @@ import { Fragment, useRef, useState } from 'react'
 import Reveal from './Reveal'
 import SectionSubtitle from './SectionSubtitle'
 import { roleOptions } from '../data'
+import { useResponsive } from '../hooks/useResponsive'
 
 const section = {
   background: 'linear-gradient(180deg,#F0FAFD,#F5FBFD)',
@@ -35,23 +36,40 @@ const STEP_LABELS = ['About You', 'Your Practice', 'Your Focus']
 const API_BASE = import.meta.env.VITE_API_URL || ''
 
 function StepIndicator({ step }) {
+  const { isMobile, isTablet } = useResponsive()
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 30 }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: isMobile ? 6 : 12,
+        marginBottom: isMobile ? 22 : 30,
+        flexWrap: isMobile ? 'wrap' : 'nowrap',
+        rowGap: isMobile ? 10 : undefined,
+      }}
+    >
       {STEP_LABELS.map((name, i) => {
         const active = i === step
         const done = i < step
         return (
           <Fragment key={name}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: isMobile ? 7 : 10,
+                flexShrink: 0,
+              }}
+            >
               <span
                 style={{
-                  width: 34,
-                  height: 34,
+                  width: isMobile ? 30 : 34,
+                  height: isMobile ? 30 : 34,
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 14,
+                  fontSize: isMobile ? 13 : 14,
                   fontWeight: 700,
                   border: `1.5px solid ${active ? '#285F66' : done ? '#4C8F88' : '#DCECEF'}`,
                   background: done ? '#4C8F88' : active ? '#285F66' : '#F5FBFD',
@@ -62,7 +80,14 @@ function StepIndicator({ step }) {
               >
                 {done ? '✓' : i + 1}
               </span>
-              <span style={{ fontSize: 13.5, fontWeight: 600, color: active ? '#1B4754' : '#7A8B92' }}>
+              <span
+                style={{
+                  fontSize: isMobile ? 12 : isTablet ? 13 : 13.5,
+                  fontWeight: 600,
+                  color: active ? '#1B4754' : '#7A8B92',
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 {name}
               </span>
             </div>
@@ -70,6 +95,7 @@ function StepIndicator({ step }) {
               <span
                 style={{
                   flex: 1,
+                  minWidth: isMobile ? 10 : undefined,
                   height: 2,
                   borderRadius: 2,
                   background: step > i ? '#4C8F88' : '#DCECEF',
@@ -85,6 +111,7 @@ function StepIndicator({ step }) {
 }
 
 export default function DemoForm() {
+  const { isMobile, isTablet } = useResponsive()
   const [step, setStep] = useState(0)
   const [submitted, setSubmitted] = useState(false)
   const [sending, setSending] = useState(false)
@@ -147,15 +174,23 @@ export default function DemoForm() {
     }
   }
 
+  const respField = isMobile ? { ...field, padding: '13px 15px', fontSize: 16 } : field
+
   return (
-    <section id="demo" style={section}>
+    <section
+      id="demo"
+      style={{
+        ...section,
+        padding: isMobile ? '48px 20px' : isTablet ? '72px 32px' : section.padding,
+      }}
+    >
       <div
         style={{
           maxWidth: 1240,
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 88,
+          gridTemplateColumns: isMobile || isTablet ? '1fr' : '1fr 1fr',
+          gap: isMobile ? 36 : isTablet ? 52 : 88,
           alignItems: 'center',
         }}
       >
@@ -204,7 +239,7 @@ export default function DemoForm() {
             background: '#FFFFFF',
             border: '1px solid #DCECEF',
             borderRadius: 26,
-            padding: '40px 44px',
+            padding: isMobile ? '28px 22px' : isTablet ? '36px 34px' : '40px 44px',
             boxShadow: '0 24px 60px rgba(27,71,84,0.08)',
           }}
         >
@@ -253,7 +288,7 @@ export default function DemoForm() {
                       required
                       placeholder="Dr. Sarah Haddad"
                       className="ds-input"
-                      style={field}
+                      style={respField}
                     />
                   </div>
                   <div>
@@ -268,7 +303,7 @@ export default function DemoForm() {
                       required
                       placeholder="s.haddad@clinic.com"
                       className="ds-input"
-                      style={field}
+                      style={respField}
                     />
                   </div>
                 </div>
@@ -281,7 +316,7 @@ export default function DemoForm() {
                     <label htmlFor="ds-role" style={label}>
                       Role
                     </label>
-                    <select id="ds-role" name="role" className="ds-input" style={field}>
+                    <select id="ds-role" name="role" className="ds-input" style={respField}>
                       {roleOptions.map((r) => (
                         <option key={r}>{r}</option>
                       ))}
@@ -297,7 +332,7 @@ export default function DemoForm() {
                       type="text"
                       placeholder="Clinic, hospital, or institution"
                       className="ds-input"
-                      style={field}
+                      style={respField}
                     />
                   </div>
                 </div>
@@ -316,7 +351,7 @@ export default function DemoForm() {
                     rows={4}
                     placeholder="Workflows, research use, team size…"
                     className="ds-input"
-                    style={{ ...field, fontFamily: 'inherit', resize: 'vertical' }}
+                    style={{ ...respField, fontFamily: 'inherit', resize: 'vertical' }}
                   />
                 </div>
               </div>
@@ -337,7 +372,7 @@ export default function DemoForm() {
                       color: '#2F4148',
                       fontSize: 15,
                       fontWeight: 600,
-                      padding: '14px 26px',
+                      padding: isMobile ? '14px 20px' : '14px 26px',
                       borderRadius: 999,
                       transition: 'border-color .25s',
                     }}
@@ -357,7 +392,7 @@ export default function DemoForm() {
                       border: 'none',
                       cursor: 'pointer',
                       fontFamily: 'inherit',
-                      background: '#285F66',
+                      background: 'linear-gradient(90deg, #007176, #17C7CC)',
                       color: '#FFFFFF',
                       fontSize: 16,
                       fontWeight: 700,
@@ -382,7 +417,7 @@ export default function DemoForm() {
                       border: 'none',
                       cursor: sending ? 'wait' : 'pointer',
                       fontFamily: 'inherit',
-                      background: '#285F66',
+                      background: 'linear-gradient(90deg, #007176, #17C7CC)',
                       color: '#FFFFFF',
                       fontSize: 16,
                       fontWeight: 700,

@@ -214,7 +214,7 @@ button {
 }
 
 .ds-pill-cta:hover {
-  color: #12333b;
+  color: #ffffff;
   transform: translateY(-2px);
 }
 
@@ -1136,11 +1136,11 @@ button {
 
 .ds-hero2-halo {
   position: absolute;
-  bottom: 90px;
+  bottom: 104px;
   left: 50%;
-  width: 520px;
-  height: 520px;
-  transform: translateX(-58%);
+  width: 600px;
+  height: 600px;
+  transform: translateX(-50%);
   border-radius: 50%;
   background: radial-gradient(circle, rgba(165, 231, 248, 0.22), transparent 66%);
   filter: blur(12px);
@@ -1155,12 +1155,12 @@ button {
   position: absolute;
   bottom: -5%;
   left: 50%;
-  transform: translateX(-64%);
-  width: 600px;
+  transform: translateX(-54%);
+  width: 700px;
   max-width: none;
   height: auto;
   z-index: 2;
-  filter: drop-shadow(0 40px 70px rgba(6, 22, 28, 0.55));
+  filter: drop-shadow(0 44px 78px rgba(6, 22, 28, 0.55));
   animation: dsHeroHandFloat 8s ease-in-out infinite;
 }
 
@@ -1168,11 +1168,11 @@ button {
 
   0%,
   100% {
-    transform: translateX(-64%) translateY(0);
+    transform: translateX(-54%) translateY(0);
   }
 
   50% {
-    transform: translateX(-64%) translateY(-14px);
+    transform: translateX(-54%) translateY(-14px);
   }
 }
 
@@ -1182,14 +1182,14 @@ button {
   z-index: 4;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 13px 17px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 20px 46px -12px rgba(6, 22, 28, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  gap: 13px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(18px) saturate(165%);
+  -webkit-backdrop-filter: blur(18px) saturate(165%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 18px 42px -16px rgba(6, 22, 28, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.85);
   white-space: nowrap;
 }
 
@@ -1211,7 +1211,7 @@ button {
    Vertical position is anchored in px from the bottom (same reference as the
    bottom-pinned device) so it stays locked to the phone at any hero height. */
 .ds-gcard--stat {
-  bottom: 500px;
+  bottom: 585px;
   left: 0;
   animation: dsGcardFloatA 7s ease-in-out infinite;
 }
@@ -1226,7 +1226,7 @@ button {
 
 /* Card 2 — accuracy, right of the device, upper-mid */
 .ds-gcard--accuracy {
-  bottom: 410px;
+  bottom: 480px;
   right: -9%;
   animation: dsGcardFloatB 7.6s ease-in-out infinite 0.5s;
 }
@@ -1234,60 +1234,56 @@ button {
 .ds-gcard-ico {
   width: 38px;
   height: 38px;
-  border-radius: 12px;
+  border-radius: 11px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #1E7A5A;
-  background: rgba(34, 160, 110, 0.14);
-  border: 1px solid rgba(34, 160, 110, 0.24);
+  color: #1B6E7C;
+  background: rgba(40, 95, 102, 0.10);
+  border: 1px solid rgba(40, 95, 102, 0.16);
 }
 
-/* accent (teal) icon variant — used by the conditions stat card */
+/* accent (cyan) icon variant — used by the conditions stat card */
 .ds-gcard-ico--accent {
-  color: #1B6E7C;
-  background: rgba(40, 95, 102, 0.12);
-  border-color: rgba(40, 95, 102, 0.22);
+  color: #12657A;
+  background: rgba(165, 231, 248, 0.30);
+  border-color: rgba(165, 231, 248, 0.45);
 }
 
 /* Card 3 — results pill, lower-right of the device */
+/* Results card — same white glass as the others (no muddy teal pill) */
 .ds-gcard--pill {
-  bottom: 130px;
+  bottom: 152px;
   right: -9%;
-  gap: 11px;
-  padding: 12px 20px 12px 13px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #285F66, #4C8F88);
-  border: 1px solid rgba(165, 231, 248, 0.35);
-  box-shadow: 0 18px 40px -10px rgba(40, 95, 102, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   animation: dsGcardFloatA 6.6s ease-in-out infinite 0.3s;
 }
 
 .ds-gcard-pill-ico {
   width: 38px;
   height: 38px;
-  border-radius: 50%;
+  border-radius: 11px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #12333B;
-  background: #A5E7F8;
+  color: #12657A;
+  background: rgba(165, 231, 248, 0.30);
+  border: 1px solid rgba(165, 231, 248, 0.45);
 }
 
 .ds-gcard-pill-t {
   font-size: 14px;
   font-weight: 700;
-  color: #FFFFFF;
-  line-height: 1.2;
+  color: #16323A;
+  line-height: 1.25;
 }
 
 .ds-gcard-pill-s {
   font-size: 12px;
   font-weight: 500;
-  color: rgba(234, 247, 251, 0.85);
-  margin-top: 1px;
+  color: #6A7C83;
+  margin-top: 2px;
 }
 
 @keyframes dsGcardFloatA {

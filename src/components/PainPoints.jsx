@@ -1,6 +1,8 @@
 import Reveal from './Reveal'
 import SectionSubtitle from './SectionSubtitle'
+import ContainerScroll from './ui/ContainerScroll'
 import { painPoints } from '../data'
+import { useResponsive } from '../hooks/useResponsive'
 
 const section = {
   background: 'linear-gradient(180deg,#F5FBFD,#F0FAFD)',
@@ -33,18 +35,34 @@ const visualPanel = {
   justifyContent: 'center',
 }
 
-function StackCard({ item, index, total, isLast }) {
+function StackCard({ item, index, total, isLast, isMobile, isTablet }) {
+  const isSmall = isMobile || isTablet
+
+  const cardInnerResponsive = {
+    ...cardInner,
+    minHeight: isMobile ? 'auto' : isTablet ? 'auto' : cardInner.minHeight,
+    gridTemplateColumns: isSmall ? '1fr' : cardInner.gridTemplateColumns,
+    gap: isMobile ? 26 : isTablet ? 40 : cardInner.gap,
+    padding: isMobile ? '30px 20px' : isTablet ? '48px 44px' : cardInner.padding,
+  }
+
+  const visualPanelResponsive = {
+    ...visualPanel,
+    height: isMobile ? 210 : isTablet ? 320 : visualPanel.height,
+    minHeight: isMobile ? 200 : isTablet ? 300 : visualPanel.minHeight,
+  }
+
   return (
     <div
       style={{
         position: 'sticky',
         top: 90,
-        marginBottom: isLast ? 0 : 48,
+        marginBottom: isLast ? 0 : isMobile ? 28 : 48,
         zIndex: index + 1,
         willChange: 'transform',
       }}
     >
-      <div style={cardInner}>
+      <div style={cardInnerResponsive}>
         <div
           style={{
             position: 'absolute',
@@ -60,7 +78,7 @@ function StackCard({ item, index, total, isLast }) {
         {/* Visual — real image when supplied, otherwise the placeholder */}
         <div
           style={{
-            ...visualPanel,
+            ...visualPanelResponsive,
             ...(item.image
               ? { border: 'none', background: '#12333B', overflow: 'hidden' }
               : null),
@@ -134,7 +152,7 @@ function StackCard({ item, index, total, isLast }) {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
               gap: '11px 24px',
               maxWidth: 560,
             }}
@@ -158,8 +176,16 @@ function StackCard({ item, index, total, isLast }) {
 }
 
 export default function PainPoints() {
+  const { isMobile, isTablet } = useResponsive()
+  const isSmall = isMobile || isTablet
+
+  const sectionResponsive = {
+    ...section,
+    padding: isMobile ? '64px 20px 60px' : isTablet ? '80px 32px 70px' : section.padding,
+  }
+
   return (
-    <section id="challenge" style={section}>
+    <section id="challenge" style={sectionResponsive}>
       <div style={{ maxWidth: 1240, margin: '0 auto' }}>
         <Reveal style={{ maxWidth: 820, marginBottom: 22 }}>
           <SectionSubtitle label="The Clinical Reality" tone="light" />
@@ -185,7 +211,7 @@ export default function PainPoints() {
         </Reveal>
 
         {/* Full-cover sticky-stacking cards */}
-        <div style={{ marginTop: 64 }}>
+        <div style={{ marginTop: isMobile ? 40 : 64 }}>
           {painPoints.map((item, i) => (
             <StackCard
               key={item.title}
@@ -193,15 +219,28 @@ export default function PainPoints() {
               index={i}
               total={painPoints.length}
               isLast={i === painPoints.length - 1}
+              isMobile={isMobile}
+              isTablet={isTablet}
             />
           ))}
         </div>
 
-        <Reveal style={{ marginTop: 64 }}>
-          <div className="ds-why-card">
+        <Reveal style={{ marginTop: isMobile ? 44 : 64 }}>
+          <ContainerScroll>
+          <div
+            className="ds-why-card"
+            style={isSmall ? { gridTemplateColumns: '1fr' } : undefined}
+          >
             <div className="ds-why-bg" />
 
-            <div className="ds-why-left">
+            <div
+              className="ds-why-left"
+              style={
+                isSmall
+                  ? { padding: isMobile ? '40px 24px 0' : '48px 40px 0', textAlign: 'center' }
+                  : undefined
+              }
+            >
               <SectionSubtitle label="One Unified Platform" tone="dark" />
               <h3
                 style={{
@@ -235,8 +274,8 @@ export default function PainPoints() {
                 className="ds-pill-cta"
                 style={{
                   display: 'inline-block',
-                  background: '#A5E7F8',
-                  color: '#12333B',
+                  background: 'linear-gradient(90deg, #007176, #17C7CC)',
+                  color: '#FFFFFF',
                   fontSize: 15.5,
                   fontWeight: 700,
                   padding: '14px 28px',
@@ -248,14 +287,29 @@ export default function PainPoints() {
               </a>
             </div>
 
-            <div className="ds-why-right">
+            <div
+              className="ds-why-right"
+              style={isSmall ? { padding: '12px 0 0', justifyContent: 'center' } : undefined}
+            >
               <img
                 src="/mobile_mockup_home.png"
                 alt="DermaScope.ai mobile app"
                 className="ds-why-phone-img"
+                style={
+                  isSmall
+                    ? {
+                        width: '100%',
+                        maxWidth: isMobile ? 260 : 320,
+                        height: 'auto',
+                        transform: 'none',
+                        margin: '0 auto',
+                      }
+                    : undefined
+                }
               />
             </div>
           </div>
+          </ContainerScroll>
         </Reveal>
       </div>
     </section>

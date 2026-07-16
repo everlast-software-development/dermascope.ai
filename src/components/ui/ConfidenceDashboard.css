@@ -1,0 +1,63 @@
+/* Premium AI confidence dashboard — micro-interactions.
+   Elegant, minimal, 250–350ms. Hover lift + shadow expansion + border glow +
+   icon animation on the trust cards; a slow float on the gauge. */
+
+.ds-cd-card {
+  transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.3s ease,
+    border-color 0.3s ease, background 0.3s ease;
+}
+.ds-cd-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(165, 231, 248, 0.55);
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow: 0 22px 44px -20px rgba(0, 0, 0, 0.55), 0 0 22px -6px rgba(127, 216, 232, 0.45);
+}
+.ds-cd-ico {
+  transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.3s ease;
+}
+.ds-cd-card:hover .ds-cd-ico {
+  transform: scale(1.1) rotate(-3deg);
+  box-shadow: 0 0 18px -2px rgba(165, 231, 248, 0.55);
+}
+
+/* Slow, soft float on the gauge for a living, premium feel. */
+@keyframes ds-cd-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+.ds-cd-float {
+  animation: ds-cd-float 6s ease-in-out infinite;
+}
+
+/* Trust banner — gentle sheen lift on hover. */
+.ds-cd-banner {
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.ds-cd-banner:hover {
+  transform: translateY(-2px);
+  border-color: rgba(165, 231, 248, 0.5);
+  box-shadow: 0 26px 52px -24px rgba(0, 0, 0, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-cd-card,
+  .ds-cd-ico,
+  .ds-cd-banner {
+    transition: none;
+  }
+  .ds-cd-card:hover,
+  .ds-cd-banner:hover {
+    transform: none;
+  }
+  .ds-cd-card:hover .ds-cd-ico {
+    transform: none;
+  }
+  .ds-cd-float {
+    animation: none;
+  }
+}

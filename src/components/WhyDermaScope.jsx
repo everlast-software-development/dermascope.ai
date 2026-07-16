@@ -3,10 +3,12 @@ import { Camera, ScanFace, Focus } from 'lucide-react'
 import Reveal from './Reveal'
 import SectionSubtitle from './SectionSubtitle'
 import DisplayCards from './ui/DisplayCards'
+import MelanomaDepthSim from './ui/MelanomaDepthSim'
+import ConfidenceDashboard from './ui/ConfidenceDashboard'
+import { useResponsive } from '../hooks/useResponsive'
 import {
   angleWhy,
   aiFeatures,
-  confidenceTags,
   workflowOutputs,
   monitoringTags,
 } from '../data'
@@ -99,9 +101,18 @@ function DotItem({ children }) {
 }
 
 function AngleFeature() {
+  const { isMobile, isTablet } = useResponsive()
+  const stack = isMobile || isTablet
   return (
-    <Reveal style={{ marginBottom: 120 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '0.9fr 1.1fr', gap: 72, alignItems: 'center' }}>
+    <Reveal style={{ marginBottom: isMobile ? 64 : isTablet ? 88 : 120 }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: stack ? '1fr' : '0.9fr 1.1fr',
+          gap: isMobile ? 32 : isTablet ? 40 : 72,
+          alignItems: 'center',
+        }}
+      >
         <div>
           <div style={numberStyle}>01</div>
           <h3 style={h3Style}>Multi-Angle Clinical Imaging</h3>
@@ -132,7 +143,18 @@ function AngleFeature() {
         </div>
 
         {/* Right-side visualization: stacked Display Cards over a framed backdrop */}
-        <div className="ds-dc-frame">
+        {/* The class sets an asymmetric 140px right padding for the desktop fan;
+            inline padding wins on small screens so the frame can't overflow. */}
+        <div
+          className="ds-dc-frame"
+          style={
+            isMobile
+              ? { padding: '14px 14px 44px' }
+              : isTablet
+                ? { padding: '18px 70px 80px 18px' }
+                : undefined
+          }
+        >
           <DisplayCards cards={angleCards} />
         </div>
       </div>
@@ -142,15 +164,17 @@ function AngleFeature() {
 
 function BeforeAfter() {
   const [slider, setSlider] = useState(56)
+  const { isMobile, isTablet } = useResponsive()
+  const stack = isMobile || isTablet
 
   return (
     <Reveal
       style={{
         display: 'grid',
-        gridTemplateColumns: '1.1fr 0.9fr',
-        gap: 72,
+        gridTemplateColumns: stack ? '1fr' : '1.1fr 0.9fr',
+        gap: isMobile ? 32 : isTablet ? 40 : 72,
         alignItems: 'center',
-        marginBottom: 110,
+        marginBottom: isMobile ? 0 : isTablet ? 24 : 110,
       }}
     >
       <div
@@ -163,31 +187,18 @@ function BeforeAfter() {
           userSelect: 'none',
         }}
       >
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'repeating-linear-gradient(45deg,#D9EFF4 0 14px,#EAF7FA 14px 28px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <span style={{ ...mono, fontSize: 12.5, color: '#5F7880' }}>[ follow-up visit — after ]</span>
-        </div>
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'repeating-linear-gradient(45deg,#EAF5F8 0 14px,#F5FBFD 14px 28px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            clipPath: `inset(0 ${100 - slider}% 0 0)`,
-          }}
-        >
-          <span style={{ ...mono, fontSize: 12.5 }}>[ baseline visit — before ]</span>
-        </div>
+        <img
+          src="/after.png"
+          alt="Follow-up visit — after"
+          draggable={false}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+        <img
+          src="/before.png"
+          alt="Baseline visit — before"
+          draggable={false}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', clipPath: `inset(0 ${100 - slider}% 0 0)` }}
+        />
         <div
           style={{
             position: 'absolute',
@@ -282,7 +293,14 @@ function BeforeAfter() {
           Track clinical changes over time using standardized imaging and AI-assisted comparisons.
           Monitor:
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px', maxWidth: 520 }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+            gap: '12px 24px',
+            maxWidth: 520,
+          }}
+        >
           {monitoringTags.map((t) => (
             <DotItem key={t}>{t}</DotItem>
           ))}
@@ -293,10 +311,27 @@ function BeforeAfter() {
 }
 
 export default function WhyDermaScope() {
+  const { isMobile, isTablet } = useResponsive()
+  const stack = isMobile || isTablet
+  const rowGap = isMobile ? 32 : isTablet ? 40 : 72
+  const rowMb = isMobile ? 64 : isTablet ? 88 : 120
+
   return (
-    <section id="why" style={section}>
+    <section
+      id="why"
+      style={{
+        ...section,
+        padding: isMobile ? '64px 20px 32px' : isTablet ? '80px 32px 40px' : section.padding,
+      }}
+    >
       <div style={{ maxWidth: 1240, margin: '0 auto' }}>
-        <Reveal style={{ maxWidth: 860, margin: '0 auto 90px', textAlign: 'center' }}>
+        <Reveal
+          style={{
+            maxWidth: 860,
+            margin: isMobile ? '0 auto 48px' : isTablet ? '0 auto 64px' : '0 auto 90px',
+            textAlign: 'center',
+          }}
+        >
           <SectionSubtitle label="Why DermaScope.ai" tone="light" />
           <h2
             style={{
@@ -324,15 +359,13 @@ export default function WhyDermaScope() {
         <Reveal
           style={{
             display: 'grid',
-            gridTemplateColumns: '1.1fr 0.9fr',
-            gap: 72,
+            gridTemplateColumns: stack ? '1fr' : '1.1fr 0.9fr',
+            gap: rowGap,
             alignItems: 'center',
-            marginBottom: 120,
+            marginBottom: rowMb,
           }}
         >
-          <div style={{ aspectRatio: '4/3', ...dashedBox }}>
-            <span style={mono}>[ AI analysis — feature detection overlay ]</span>
-          </div>
+          <MelanomaDepthSim />
           <div>
             <div style={numberStyle}>02</div>
             <h3 style={h3Style}>AI Skin Intelligence</h3>
@@ -340,7 +373,7 @@ export default function WhyDermaScope() {
               Designed to assist clinicians in evaluating more than 300 skin conditions, the AI
               analyzes clinically relevant image features including:
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px', marginBottom: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px 24px', marginBottom: 24 }}>
               {aiFeatures.map((f) => (
                 <DotItem key={f}>{f}</DotItem>
               ))}
@@ -361,82 +394,19 @@ export default function WhyDermaScope() {
           </div>
         </Reveal>
 
-        {/* 03 — High confidence */}
-        <Reveal
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'auto 1fr',
-            gap: 88,
-            alignItems: 'center',
-            marginBottom: 120,
-            background: 'linear-gradient(140deg,#F5FBFD,#F0FAFD)',
-            border: '1px solid #DCECEF',
-            borderRadius: 28,
-            padding: '64px 80px',
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: 'clamp(96px,10vw,150px)',
-                fontWeight: 800,
-                lineHeight: 0.95,
-                letterSpacing: '-0.04em',
-                background: 'linear-gradient(140deg,#285F66,#4C8F88 60%,#6BB8CB)',
-                WebkitBackgroundClip: 'text',
-                backgroundClip: 'text',
-                color: 'transparent',
-              }}
-            >
-              95%
-            </div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: '#7A8B92', marginTop: 10 }}>
-              image analysis accuracy, up&nbsp;to
-            </div>
-          </div>
-          <div>
-            <div style={numberStyle}>03</div>
-            <h3 style={h3Style}>High-Confidence AI Support</h3>
-            <p style={{ margin: '0 0 22px', maxWidth: 620, ...bodyStyle }}>
-              DermaScope.ai delivers up to 95% image analysis accuracy across supported AI workflows
-              validated under controlled testing conditions. Every AI-generated result is:
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 22 }}>
-              {confidenceTags.map((t) => (
-                <span
-                  key={t}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    background: '#FFFFFF',
-                    border: '1px solid #DCECEF',
-                    borderRadius: 999,
-                    padding: '9px 18px',
-                    fontSize: 14.5,
-                    fontWeight: 600,
-                    color: '#1B4754',
-                  }}
-                >
-                  <span style={{ color: '#4C8F88' }}>✓</span>
-                  {t}
-                </span>
-              ))}
-            </div>
-            <p style={{ margin: 0, fontSize: 15.5, fontWeight: 600, color: '#285F66' }}>
-              Clinical decisions always remain with the healthcare professional.
-            </p>
-          </div>
+        {/* 03 — High confidence — premium AI confidence dashboard */}
+        <Reveal style={{ marginBottom: rowMb }}>
+          <ConfidenceDashboard />
         </Reveal>
 
         {/* 04 — Structured workflow */}
         <Reveal
           style={{
             display: 'grid',
-            gridTemplateColumns: '0.9fr 1.1fr',
-            gap: 72,
+            gridTemplateColumns: stack ? '1fr' : '0.9fr 1.1fr',
+            gap: rowGap,
             alignItems: 'center',
-            marginBottom: 120,
+            marginBottom: rowMb,
           }}
         >
           <div>
@@ -481,8 +451,13 @@ export default function WhyDermaScope() {
               ))}
             </div>
           </div>
-          <div style={{ aspectRatio: '4/3', ...dashedBox }}>
-            <span style={mono}>[ structured clinical report screenshot ]</span>
+          <div style={{ aspectRatio: '4/3', borderRadius: 24, overflow: 'hidden', border: '1px solid #DCECEF' }}>
+            <img
+              src="/Clinical%20Workflow.webp"
+              alt="Structured clinical workflow"
+              loading="lazy"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
           </div>
         </Reveal>
 

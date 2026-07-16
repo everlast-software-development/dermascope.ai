@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&display=swap');
+
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes floatA { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes floatB { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(9px); } }
+@keyframes orbitSpin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* ── Hero hover effects ──────────────────────────────────────────────
+   Only animate properties NOT set via inline styles (transform, opacity,
+   filter, underline) so the hover reliably wins over the inline base. */
+
+/* Nav / menu links — brighten + lift with a growing underline */
+.ds-hnav-link {
+  position: relative;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.ds-hnav-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  height: 2px;
+  width: 0;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.7;
+  transition: width 0.25s ease;
+}
+.ds-hnav-link:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.ds-hnav-link:hover::after {
+  width: 100%;
+}
+
+/* Primary gradient buttons — lift, brighten, deepen shadow */
+.ds-hbtn {
+  transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
+}
+.ds-hbtn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.06) saturate(1.05);
+  box-shadow: 0 16px 38px rgba(0, 20, 24, 0.45) !important;
+}
+.ds-hbtn:active {
+  transform: translateY(0);
+}
+
+/* "How It Works" secondary — nudge across, glow the play circle */
+.ds-hsecondary {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.ds-hsecondary .ds-hplay {
+  transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+}
+.ds-hsecondary:hover {
+  opacity: 0.95;
+  transform: translateX(2px);
+}
+.ds-hsecondary:hover .ds-hplay {
+  transform: scale(1.1);
+  background: rgba(127, 216, 232, 0.22) !important;
+  border-color: rgba(127, 216, 232, 0.65) !important;
+}
+
+/* Hamburger button */
+.ds-hburger {
+  transition: opacity 0.2s ease;
+}
+.ds-hburger:hover {
+  opacity: 0.8;
+}
