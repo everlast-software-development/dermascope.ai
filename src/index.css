@@ -84,6 +84,23 @@ button {
   }
 }
 
+/* ── Floating Early-Access CTA + drawer close button ── */
+.ds-floating-cta {
+  border: none;
+  outline: none;
+}
+
+.ds-ea-close:hover {
+  background: rgba(40, 95, 102, 0.1);
+  color: #12333b;
+  transform: rotate(90deg);
+}
+
+.ds-ea-close:focus-visible {
+  outline: 2px solid #4c8f88;
+  outline-offset: 2px;
+}
+
 /* ── Glassmorphism header ── */
 .ds-nav {
   position: relative;

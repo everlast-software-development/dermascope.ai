@@ -92,6 +92,7 @@ export const painPoints = [
   },
   {
     title: 'AI Is Advancing Rapidly—But Clinical Trust Matters',
+    image: '/AI%20Is%20Advancing.webp',
     body: 'Healthcare professionals need AI that is transparent, explainable, and designed to support clinical decision-making—not replace professional expertise.',
     tagsLabel: 'What Clinicians Need',
     highlightTags: true,

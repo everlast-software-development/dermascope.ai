@@ -37,6 +37,10 @@ const visualPanel = {
 
 function StackCard({ item, index, total, isLast, isMobile, isTablet }) {
   const isSmall = isMobile || isTablet
+  // Alternate the stacked order on mobile/tablet so the section reads
+  // text→image, image→text, text→image… instead of every card leading with
+  // its image. Desktop keeps its fixed two-column order (flip never applies).
+  const flip = isSmall && index % 2 === 1
 
   const cardInnerResponsive = {
     ...cardInner,
@@ -82,6 +86,7 @@ function StackCard({ item, index, total, isLast, isMobile, isTablet }) {
             ...(item.image
               ? { border: 'none', background: '#12333B', overflow: 'hidden' }
               : null),
+            ...(flip ? { order: 2 } : null),
           }}
         >
           {item.image ? (
@@ -112,7 +117,7 @@ function StackCard({ item, index, total, isLast, isMobile, isTablet }) {
         </div>
 
         {/* Content */}
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative', ...(flip ? { order: 1 } : null) }}>
           <SectionSubtitle label="The Clinical Reality" tone="dark" />
           <h3
             style={{
@@ -299,7 +304,7 @@ export default function PainPoints() {
                   isSmall
                     ? {
                         width: '100%',
-                        maxWidth: isMobile ? 260 : 320,
+                        maxWidth: isMobile ? 360 : 480,
                         height: 'auto',
                         transform: 'none',
                         margin: '0 auto',

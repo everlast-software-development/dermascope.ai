@@ -14,7 +14,7 @@ const section = {
   scrollMarginTop: 70,
 }
 
-function PhoneMockup({ alt }) {
+function PhoneMockup({ alt, width = 264 }) {
   return (
     <div style={{ position: 'relative' }}>
       <div
@@ -29,7 +29,7 @@ function PhoneMockup({ alt }) {
       <div
         style={{
           position: 'relative',
-          width: 264,
+          width,
           borderRadius: 58,
           padding: 11,
           background: 'linear-gradient(160deg,#4d585f,#20272b 42%,#39434a)',
@@ -48,7 +48,7 @@ function PhoneMockup({ alt }) {
   )
 }
 
-function MediaLayer({ media, active, position, isMobile }) {
+function MediaLayer({ media, active, position, isMobile, phoneWidth }) {
   const translateY = active ? 0 : position === 'past' ? -60 : 60
   const isPhone = media.type === 'phone'
 
@@ -68,7 +68,7 @@ function MediaLayer({ media, active, position, isMobile }) {
       }}
     >
       {isPhone ? (
-        <PhoneMockup alt={media.alt} />
+        <PhoneMockup alt={media.alt} width={phoneWidth} />
       ) : (
         <div
           style={{
@@ -141,6 +141,10 @@ export default function HowItWorks() {
     setStep(i)
     setProgress(0)
   }
+
+  // Larger phone mockup on mobile/tablet so it reads as the section's focal
+  // point. Desktop keeps its original size.
+  const phoneWidth = isMobile ? 300 : isTablet ? 340 : 264
 
   return (
     <section
@@ -280,7 +284,7 @@ export default function HowItWorks() {
             style={{
               position: 'relative',
               width: '100%',
-              height: isMobile ? 440 : isTablet ? 560 : 680,
+              height: isMobile ? 500 : isTablet ? 620 : 680,
               borderRadius: 28,
               border: '1px solid rgba(165,231,248,0.18)',
               background: 'rgba(255,255,255,0.03)',
@@ -294,6 +298,7 @@ export default function HowItWorks() {
                 active={i === step}
                 position={i < step ? 'past' : 'future'}
                 isMobile={isMobile}
+                phoneWidth={phoneWidth}
               />
             ))}
           </div>

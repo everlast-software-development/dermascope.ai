@@ -8,12 +8,35 @@ const iconWrap = {
   width: 44, height: 44, borderRadius: '50%', background: '#ddf2f5',
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto',
 }
+// Compact icon badge for the mobile 2×2 stat-card grid.
+const iconWrapSm = {
+  width: 36, height: 36, borderRadius: '50%', background: '#ddf2f5',
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto',
+}
 const card = {
   position: 'absolute', zIndex: 3, display: 'flex', alignItems: 'center', gap: 13,
   padding: '15px 20px', borderRadius: 16, background: 'rgba(255,255,255,0.96)',
   boxShadow: '0 18px 40px rgba(0,15,18,0.35)',
 }
 const navLink = { color: '#c9e4e9', textDecoration: 'none' }
+
+// Mobile + tablet keep the desktop concept: the same four cards float at the
+// phone's corners. The inner card is scaled per breakpoint so its baked-in type
+// shrinks with it, and scales toward its anchoring corner so it hugs the edge
+// (never overflowing the stage or colliding with the opposite card).
+const floatCardBase = {
+  display: 'flex', alignItems: 'center', gap: 9,
+  padding: '10px 12px', borderRadius: 14,
+  background: 'rgba(255,255,255,0.96)',
+  boxShadow: '0 14px 32px rgba(0,15,18,0.30)',
+  maxWidth: 168,
+}
+const floatCornerPos = {
+  '300': { top: 0, left: 0, origin: 'top left', float: 'A' },
+  '95': { top: 0, right: 0, origin: 'top right', float: 'B' },
+  'multi': { bottom: 0, left: 0, origin: 'bottom left', float: 'B' },
+  'results': { bottom: 0, right: 0, origin: 'bottom right', float: 'A' },
+}
 
 const navItems = [
   { label: 'Home', href: '#top' },
@@ -87,10 +110,53 @@ function OrbitDot({ angle }) {
 
 export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed = 38 }) {
   const { isMobile, isTablet } = useResponsive()
-  const stacked = isMobile || isTablet // one-column layout for phones + tablets
+  const stacked = isMobile || isTablet // phones + tablets drop the desktop's full-height column
 
   const floatFor = (t) =>
     floatCards && !stacked ? `float${t} ${t === 'A' ? 6 : 7}s ease-in-out infinite` : 'none'
+
+  // Mobile + tablet reuse the desktop composition: four cards floating at the
+  // phone's corners, scaled to the smaller stage. Same float animation as desktop.
+  const floatingCards = (scale) =>
+    statCards.map((c) => {
+      const p = floatCornerPos[c.key]
+      return (
+        <div
+          key={c.key}
+          style={{
+            position: 'absolute',
+            top: p.top,
+            bottom: p.bottom,
+            left: p.left,
+            right: p.right,
+            zIndex: 4,
+            animation: floatCards ? `float${p.float} ${p.float === 'A' ? 6 : 7}s ease-in-out infinite` : 'none',
+          }}
+        >
+          <div style={{ ...floatCardBase, transform: `scale(${scale})`, transformOrigin: p.origin }}>
+            <span style={iconWrapSm}>{c.icon}</span>
+            {c.body}
+          </div>
+        </div>
+      )
+    })
+
+  // Rotating dashed rings behind the device — the desktop's orbit, sized for the stage.
+  const orbitRings = (outer, inner) =>
+    showOrbit ? (
+      <>
+        <div style={{ position: 'absolute', left: '50%', top: '50%', width: outer, height: outer, border: '1.5px dashed rgba(158,224,236,0.28)', borderRadius: '50%', animation: 'orbitSpin 60s linear infinite', pointerEvents: 'none', zIndex: 0 }}>
+          <OrbitDot angle={20} />
+          <OrbitDot angle={150} />
+          <OrbitDot angle={265} />
+        </div>
+        <div style={{ position: 'absolute', left: '50%', top: '50%', width: inner, height: inner, border: '1px dashed rgba(158,224,236,0.2)', borderRadius: '50%', animation: 'orbitSpin 45s linear infinite reverse', pointerEvents: 'none', zIndex: 0 }}>
+          <OrbitDot angle={80} />
+          <OrbitDot angle={230} />
+        </div>
+      </>
+    ) : null
+
   const logos = ['Genesis360', 'SkinTrix360', 'Everlast Wellness', 'Al Jamila Club']
   const marqueeLogos = [...logos, ...logos, ...logos, ...logos]
 
@@ -217,7 +283,7 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
       )}
 
       {/* Spacer reserving the fixed nav's footprint so hero content clears it */}
-      <div style={{ flex: '0 0 auto', height: stacked ? 84 : 76 }} aria-hidden="true" />
+      <div style={{ flex: '0 0 auto', height: isMobile ? 70 : isTablet ? 80 : 76 }} aria-hidden="true" />
 
       {/* Hero body */}
       <div
@@ -226,80 +292,106 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
           minHeight: 0,
           width: isMobile ? 'calc(100% - 40px)' : isTablet ? 'calc(100% - 64px)' : 'min(1240px, calc(100% - 96px))',
           margin: '0 auto',
-          display: 'grid',
-          gridTemplateColumns: stacked ? '1fr' : 'minmax(480px, 46%) 1fr',
-          alignItems: 'center',
-          gap: stacked ? 34 : 24,
-          padding: stacked ? '18px 0 40px' : 0,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          gap: isMobile ? 24 : isTablet ? 34 : 0,
+          padding: isMobile ? '8px 0 28px' : isTablet ? '20px 0 36px' : 0,
           position: 'relative',
           zIndex: 10,
         }}
       >
-        {/* Left */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: stacked ? 'center' : 'flex-start', textAlign: stacked ? 'center' : 'left', gap: stacked ? 18 : 22, padding: '8px 0' }}>
-          <SectionSubtitle label="Physician-supervised clinical AI" tone="dark" style={{ marginBottom: 0 }} />
-          <h1 style={{ margin: 0, fontSize: isMobile ? 'clamp(30px, 8.5vw, 42px)' : 'clamp(38px, 3.6vw, 58px)', lineHeight: 1.12, fontWeight: 800, letterSpacing: '-0.5px', color: '#ffffff', textWrap: 'balance' }}>
-            When Every Detail Matters,<br />
-            <span style={{ color: '#7fd8e8' }}>AI Sees More.</span><br />
-            Physicians Decide.
-          </h1>
-          <p style={{ margin: 0, maxWidth: 560, fontSize: 'clamp(15px, 1.05vw, 17px)', lineHeight: 1.75, color: 'rgba(230,245,248,0.82)', textWrap: 'pretty' }}>
-            From everyday dermatology to the most challenging and complex skin conditions, DermaScope.ai transforms clinical images into actionable intelligence&mdash;helping physicians detect critical visual patterns, prioritize high-risk findings, and make more informed clinical decisions.
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: stacked ? 'center' : 'flex-start', flexWrap: 'wrap', gap: isMobile ? 14 : 22, marginTop: 4 }}>
-            <a href="#demo" className="ds-hbtn" style={{ background: 'linear-gradient(90deg, #007176, #17C7CC)', color: '#ffffff', fontWeight: 600, fontSize: 15.5, padding: '15px 32px', borderRadius: 999, boxShadow: '0 10px 28px rgba(0,20,24,0.35)', textDecoration: 'none' }}>Join Early Access</a>
-            <a href="#how" className="ds-hsecondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, color: '#eaf7f9', fontWeight: 600, fontSize: 15.5, textDecoration: 'none' }}>
-              <span className="ds-hplay" style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.25)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="14" height="16" viewBox="0 0 14 16" fill="none"><path d="M1 1.8v12.4c0 .8.9 1.3 1.6.9l10-6.2c.6-.4.6-1.4 0-1.8l-10-6.2C1.9.5 1 1 1 1.8z" fill="#7fd8e8" /></svg>
-              </span>
-              How It Works
-            </a>
+        {/* Copy + primary visual.
+            Desktop & tablet: two columns (text | phone composition).
+            Mobile: single centered column (phone composition below the copy). */}
+        <div
+          style={{
+            display: isMobile ? 'flex' : 'grid',
+            flexDirection: isMobile ? 'column' : undefined,
+            gridTemplateColumns: isTablet ? '0.92fr 1.08fr' : 'minmax(480px, 46%) 1fr',
+            alignItems: 'center',
+            gap: isMobile ? 22 : isTablet ? 40 : 24,
+            height: stacked ? 'auto' : '100%',
+            minHeight: 0,
+          }}
+        >
+          {/* Left — copy */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'center' : 'flex-start', textAlign: isMobile ? 'center' : 'left', gap: isMobile ? 16 : isTablet ? 20 : 22, padding: '8px 0' }}>
+            <SectionSubtitle label="Physician-supervised clinical AI" tone="dark" style={{ marginBottom: 0 }} />
+            <h1 style={{ margin: 0, fontSize: isMobile ? 'clamp(28px, 8vw, 38px)' : isTablet ? 'clamp(34px, 4.6vw, 46px)' : 'clamp(38px, 3.6vw, 58px)', lineHeight: 1.12, fontWeight: 800, letterSpacing: '-0.5px', color: '#ffffff', textWrap: 'balance' }}>
+              When Every Detail Matters,<br />
+              <span style={{ color: '#7fd8e8' }}>AI Sees More.</span><br />
+              Physicians Decide.
+            </h1>
+            <p style={{ margin: 0, maxWidth: 560, fontSize: 'clamp(15px, 1.05vw, 17px)', lineHeight: 1.7, color: 'rgba(230,245,248,0.82)', textWrap: 'pretty' }}>
+              From everyday dermatology to the most challenging and complex skin conditions, DermaScope.ai transforms clinical images into actionable intelligence&mdash;helping physicians detect critical visual patterns, prioritize high-risk findings, and make more informed clinical decisions.
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start', flexWrap: 'wrap', gap: isMobile ? 14 : 22, marginTop: 4 }}>
+              <a href="#demo" className="ds-hbtn" style={{ background: 'linear-gradient(90deg, #007176, #17C7CC)', color: '#ffffff', fontWeight: 600, fontSize: 15.5, padding: '15px 32px', borderRadius: 999, boxShadow: '0 10px 28px rgba(0,20,24,0.35)', textDecoration: 'none' }}>Join Early Access</a>
+              <a href="#how" className="ds-hsecondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, color: '#eaf7f9', fontWeight: 600, fontSize: 15.5, textDecoration: 'none' }}>
+                <span className="ds-hplay" style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.25)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="14" height="16" viewBox="0 0 14 16" fill="none"><path d="M1 1.8v12.4c0 .8.9 1.3 1.6.9l10-6.2c.6-.4.6-1.4 0-1.8l-10-6.2C1.9.5 1 1 1 1.8z" fill="#7fd8e8" /></svg>
+                </span>
+                How It Works
+              </a>
+            </div>
           </div>
-        </div>
 
-        {/* Right: mockup + orbit + floating cards */}
-        <div style={{ position: 'relative', height: stacked ? 'auto' : '100%', minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: stacked ? 26 : 0 }}>
-          {showOrbit && !stacked && (
-            <>
-              <div style={{ position: 'absolute', left: '50%', top: '50%', width: '78vh', height: '78vh', maxWidth: 720, maxHeight: 720, border: '1.5px dashed rgba(158,224,236,0.35)', borderRadius: '50%', animation: 'orbitSpin 60s linear infinite' }}>
-                <OrbitDot angle={20} />
-                <OrbitDot angle={150} />
-                <OrbitDot angle={265} />
-              </div>
-              <div style={{ position: 'absolute', left: '50%', top: '50%', width: '58vh', height: '58vh', maxWidth: 540, maxHeight: 540, border: '1px dashed rgba(158,224,236,0.22)', borderRadius: '50%', animation: 'orbitSpin 45s linear infinite reverse' }}>
-                <OrbitDot angle={80} />
-                <OrbitDot angle={230} />
-              </div>
-            </>
-          )}
+          {/* Right visual */}
+          {!stacked ? (
+            /* DESKTOP — tall mockup, orbit rings, absolutely-positioned floating cards (unchanged) */
+            <div style={{ position: 'relative', height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              {showOrbit && (
+                <>
+                  <div style={{ position: 'absolute', left: '50%', top: '50%', width: '78vh', height: '78vh', maxWidth: 720, maxHeight: 720, border: '1.5px dashed rgba(158,224,236,0.35)', borderRadius: '50%', animation: 'orbitSpin 60s linear infinite' }}>
+                    <OrbitDot angle={20} />
+                    <OrbitDot angle={150} />
+                    <OrbitDot angle={265} />
+                  </div>
+                  <div style={{ position: 'absolute', left: '50%', top: '50%', width: '58vh', height: '58vh', maxWidth: 540, maxHeight: 540, border: '1px dashed rgba(158,224,236,0.22)', borderRadius: '50%', animation: 'orbitSpin 45s linear infinite reverse' }}>
+                    <OrbitDot angle={80} />
+                    <OrbitDot angle={230} />
+                  </div>
+                </>
+              )}
 
-          <img
-            src="/hero-mockup.png"
-            alt="DermaScope capture angles app screen"
-            style={
-              stacked
-                ? { width: isMobile ? 'min(300px, 82vw)' : 'min(440px, 62vw)', height: 'auto', maxWidth: '100%', position: 'relative', zIndex: 2, filter: 'drop-shadow(0 30px 46px rgba(0,15,18,0.45))' }
-                : { height: '96%', maxHeight: 780, width: 'auto', position: 'relative', zIndex: 2, filter: 'drop-shadow(0 40px 60px rgba(0,15,18,0.45))' }
-            }
-          />
+              <img
+                src="/hero-mockup.webp"
+                alt="DermaScope capture angles app screen"
+                style={{ height: '96%', maxHeight: 780, width: 'auto', position: 'relative', zIndex: 2, filter: 'drop-shadow(0 40px 60px rgba(0,15,18,0.45))' }}
+              />
 
-          {stacked ? (
-            /* Static wrapped row of stat cards below the mockup */
-            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 14, width: '100%', maxWidth: 620 }}>
               {statCards.map((c) => (
-                <div key={c.key} style={{ ...card, position: 'static', animation: 'none', alignItems: 'center', maxWidth: 260, flex: '1 1 240px', padding: '14px 18px' }}>
+                <div key={c.key} style={{ ...card, ...c.pos, animation: floatFor(c.float) }}>
                   <span style={iconWrap}>{c.icon}</span>
                   {c.body}
                 </div>
               ))}
             </div>
+          ) : isTablet ? (
+            /* TABLET — same composition as desktop: big phone with the 4 cards floating
+               at its corners + orbit rings. Larger cards than mobile. */
+            <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              {orbitRings('min(46vw, 420px)', 'min(35vw, 320px)')}
+              <img
+                src="/hero-mockup.webp"
+                alt="DermaScope capture angles app screen"
+                style={{ width: 'min(340px, 44vw)', height: 'auto', maxWidth: '100%', position: 'relative', zIndex: 2, filter: 'drop-shadow(0 30px 52px rgba(0,15,18,0.45))' }}
+              />
+              {floatingCards(0.88)}
+            </div>
           ) : (
-            statCards.map((c) => (
-              <div key={c.key} style={{ ...card, ...c.pos, animation: floatFor(c.float) }}>
-                <span style={iconWrap}>{c.icon}</span>
-                {c.body}
-              </div>
-            ))
+            /* MOBILE — phone is the focal point (~80vw); the 4 cards float at its corners
+               + orbit rings. Same premium composition as desktop, scaled down. */
+            <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              {orbitRings('min(84vw, 330px)', 'min(64vw, 250px)')}
+              <img
+                src="/hero-mockup.webp"
+                alt="DermaScope capture angles app screen"
+                style={{ width: 'min(300px, 80vw)', height: 'auto', maxWidth: '100%', position: 'relative', zIndex: 2, filter: 'drop-shadow(0 26px 44px rgba(0,15,18,0.45))' }}
+              />
+              {floatingCards(0.7)}
+            </div>
           )}
         </div>
       </div>
