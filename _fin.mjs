@@ -1,0 +1,22 @@
+import { chromium } from 'playwright'
+const OUT = process.argv[2]
+const b = await chromium.launch()
+// desktop step 0 (check subtitle clears nav)
+const p = await b.newPage({ viewport:{width:1440,height:860}})
+await p.goto('http://localhost:4660/', { waitUntil:'networkidle' })
+await p.waitForTimeout(800)
+const secTop = await p.evaluate(()=>document.querySelector('#how').getBoundingClientRect().top + window.scrollY)
+await p.evaluate((y)=>window.scrollTo(0,y), secTop+20)
+await p.waitForTimeout(800)
+await p.screenshot({ path:`${OUT}/pin-final.png` })
+await p.close()
+// mobile fallback — scroll to section, confirm it does NOT pin (normal scroll) and renders
+const m = await b.newPage({ viewport:{width:390,height:844}})
+await m.goto('http://localhost:4660/', { waitUntil:'networkidle' })
+await m.waitForTimeout(800)
+await m.evaluate(()=>{const el=[...document.querySelectorAll('h2')].find(e=>e.textContent.includes('Simple. Fast'));el&&el.scrollIntoView({block:'start'})})
+await m.waitForTimeout(700)
+const ov = await m.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth)
+console.log('mobile overflow', ov)
+await m.screenshot({ path:`${OUT}/how-mobile.png` })
+await b.close(); console.log('done')

@@ -342,18 +342,6 @@ button {
   z-index: 3;
 }
 
-/* bringing the whole stack into focus on hover */
-.ds-dc-stack:hover .ds-dc-card {
-  opacity: 1;
-}
-
-.ds-dc-card:hover {
-  transform: skewY(-7deg) translate(var(--dc-x, 0px), calc(var(--dc-y, 0px) - 16px));
-  box-shadow: 0 30px 64px rgba(27, 71, 84, 0.22);
-  border-color: rgba(40, 95, 102, 0.32);
-  z-index: 10;
-}
-
 .ds-dc-icon {
   width: 48px;
   height: 48px;
@@ -422,7 +410,6 @@ button {
 @media (prefers-reduced-motion: reduce) {
 
   .ds-dc-card,
-  .ds-dc-card:hover,
   .ds-dc-stack {
     transition: none;
   }

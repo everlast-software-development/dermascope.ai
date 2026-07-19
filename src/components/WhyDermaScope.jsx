@@ -108,7 +108,7 @@ function AngleFeature() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: stack ? '1fr' : '0.9fr 1.1fr',
+          gridTemplateColumns: stack ? '1fr' : 'calc(50% - 72px) 1fr',
           gap: isMobile ? 32 : isTablet ? 40 : 72,
           alignItems: 'center',
         }}
@@ -171,7 +171,7 @@ function BeforeAfter() {
     <Reveal
       style={{
         display: 'grid',
-        gridTemplateColumns: stack ? '1fr' : '1.1fr 0.9fr',
+        gridTemplateColumns: stack ? '1fr' : '1fr calc(50% - 72px)',
         gap: isMobile ? 32 : isTablet ? 40 : 72,
         alignItems: 'center',
         marginBottom: isMobile ? 0 : isTablet ? 24 : 110,
@@ -359,7 +359,7 @@ export default function WhyDermaScope() {
         <Reveal
           style={{
             display: 'grid',
-            gridTemplateColumns: stack ? '1fr' : '1.1fr 0.9fr',
+            gridTemplateColumns: stack ? '1fr' : '1fr calc(50% - 72px)',
             gap: rowGap,
             alignItems: 'center',
             marginBottom: rowMb,
@@ -403,7 +403,7 @@ export default function WhyDermaScope() {
         <Reveal
           style={{
             display: 'grid',
-            gridTemplateColumns: stack ? '1fr' : '0.9fr 1.1fr',
+            gridTemplateColumns: stack ? '1fr' : 'calc(50% - 72px) 1fr',
             gap: rowGap,
             alignItems: 'center',
             marginBottom: rowMb,

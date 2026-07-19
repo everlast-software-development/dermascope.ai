@@ -196,6 +196,7 @@ export default function ConfidenceDashboard() {
 
           {/* Copy + trust attributes */}
           <div>
+            <div style={{ fontSize: 'clamp(44px,4vw,56px)', fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em', color: 'rgba(165,231,248,0.28)', marginBottom: 14 }}>03</div>
             <h2 style={{ margin: '0 0 16px', fontSize: isMobile ? 23 : 'clamp(30px,2.6vw,38px)', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.14, color: '#FFFFFF' }}>
               High-Confidence AI Support
             </h2>
