@@ -221,7 +221,6 @@ export default function EarlyAccessForm({ onSuccess }) {
               name="name"
               type="text"
               required
-              placeholder="Dr. Sarah Haddad"
               className="ds-input"
               style={respField}
             />
@@ -236,7 +235,6 @@ export default function EarlyAccessForm({ onSuccess }) {
               name="email"
               type="email"
               required
-              placeholder="s.haddad@clinic.com"
               className="ds-input"
               style={respField}
             />
@@ -265,7 +263,6 @@ export default function EarlyAccessForm({ onSuccess }) {
               id="ds-org"
               name="org"
               type="text"
-              placeholder="Clinic, hospital, or institution"
               className="ds-input"
               style={respField}
             />
@@ -284,7 +281,6 @@ export default function EarlyAccessForm({ onSuccess }) {
             id="ds-msg"
             name="message"
             rows={4}
-            placeholder="Workflows, research use, team size…"
             className="ds-input"
             style={{ ...respField, fontFamily: 'inherit', resize: 'vertical' }}
           />
@@ -319,6 +315,7 @@ export default function EarlyAccessForm({ onSuccess }) {
           <button
             type="button"
             onClick={nextStep}
+            className="ds-form-cta"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -333,16 +330,18 @@ export default function EarlyAccessForm({ onSuccess }) {
               fontWeight: 700,
               padding: '15px 24px',
               borderRadius: 999,
-              transition: 'background .25s',
             }}
           >
-            Continue →
+            <span className="ds-cta-label">
+              Continue
+              <span className="ds-cta-arrow" aria-hidden="true">→</span>
+            </span>
           </button>
         )}
         {step === 2 && (
           <button
             type="submit"
-            className="ds-submit"
+            className="ds-form-cta"
             disabled={sending}
             style={{
               display: 'inline-flex',
@@ -361,7 +360,16 @@ export default function EarlyAccessForm({ onSuccess }) {
               opacity: sending ? 0.7 : 1,
             }}
           >
-            {sending ? 'Sending…' : 'Join Early Access →'}
+            <span className="ds-cta-label">
+              {sending ? (
+                'Sending…'
+              ) : (
+                <>
+                  Join Early Access
+                  <span className="ds-cta-arrow" aria-hidden="true">→</span>
+                </>
+              )}
+            </span>
           </button>
         )}
       </div>

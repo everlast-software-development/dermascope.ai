@@ -1,0 +1,106 @@
+/* Privacy Policy page — premium legal document styling. */
+
+.ds-legal-card {
+  transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
+}
+.ds-legal-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 26px 60px -30px rgba(16, 55, 62, 0.3);
+  border-color: rgba(76, 143, 136, 0.22);
+}
+
+/* Table-of-contents links */
+.ds-toc-link {
+  display: block;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #5c7077;
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  transition: color .25s ease, background .25s ease, border-color .25s ease;
+}
+.ds-toc-link:hover {
+  color: #1b4754;
+  background: rgba(76, 143, 136, 0.07);
+}
+.ds-toc-link.is-active {
+  color: #1b4754;
+  font-weight: 600;
+  background: rgba(76, 143, 136, 0.1);
+  border-left-color: #4c8f88;
+}
+
+/* Body copy inside cards */
+.ds-legal-body p {
+  margin: 0 0 16px;
+  font-size: 15.5px;
+  line-height: 1.75;
+  color: #4a5d64;
+}
+.ds-legal-body p:last-child {
+  margin-bottom: 0;
+}
+.ds-legal-body ul {
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+.ds-legal-body ul:last-child {
+  margin-bottom: 0;
+}
+.ds-legal-body li {
+  position: relative;
+  padding-left: 26px;
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: #4a5d64;
+}
+.ds-legal-body li::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 9px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(140deg, #4c8f88, #17c7cc);
+}
+
+/* Inline rich text inside legal body */
+.ds-legal-body a {
+  color: #2f7a72;
+  font-weight: 600;
+  text-decoration: none;
+  word-break: break-word;
+  transition: color .2s ease;
+}
+.ds-legal-body a:hover {
+  color: #1b4754;
+  text-decoration: underline;
+}
+.ds-legal-body strong {
+  color: #1b4754;
+  font-weight: 700;
+}
+/* Bold sub-heading within a section (rendered as a div, not a <p>) */
+.ds-legal-body .ds-legal-subhead {
+  margin: 24px 0 12px;
+  font-size: 15.5px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: #1b4754;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-legal-card,
+  .ds-toc-link {
+    transition: none;
+  }
+  .ds-legal-card:hover {
+    transform: none;
+  }
+}

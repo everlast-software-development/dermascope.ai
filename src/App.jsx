@@ -4,7 +4,7 @@ import WhyDermaScope from './components/WhyDermaScope'
 import WhyChoose from './components/WhyChoose'
 import HowItWorks from './components/HowItWorks'
 import DemoForm from './components/DemoForm'
-import BattleWithAI from './components/BattleWithAI'
+// import BattleWithAI from './components/BattleWithAI' // temporarily hidden
 import WhoItsFor from './components/WhoItsFor'
 import CinematicFooter from './components/ui/CinematicFooter'
 import FloatingEarlyAccess from './components/FloatingEarlyAccess'
@@ -22,7 +22,8 @@ export default function App() {
         <WhyChoose />
         <HowItWorks />
         <DemoForm />
-        <BattleWithAI />
+        {/* Live Battle with AI — temporarily hidden (kept for later use) */}
+        {/* <BattleWithAI /> */}
         <WhoItsFor />
         <CinematicFooter />
       </div>

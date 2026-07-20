@@ -157,7 +157,12 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
       </>
     ) : null
 
-  const logos = ['Genesis360', 'SkinTrix360', 'Everlast Wellness', 'Al Jamila Club']
+  const logos = [
+    { color: '/gents-club.png', mono: '/gents-club-mono.png', alt: 'Gents Facial Club' },
+    { color: '/EWMC-Logo-1.png', mono: '/EWMC-Logo-1-mono.png', alt: 'Everlast Wellness Medical Center' },
+    { color: '/alraha-logo.webp', mono: '/alraha-logo-mono.png', alt: 'Alraha Medical Center' },
+    { color: '/aljameelaclub-dark-logo.webp', mono: '/aljameelaclub-dark-logo-mono.png', alt: 'Al Jameela Facial Club' },
+  ]
   const marqueeLogos = [...logos, ...logos, ...logos, ...logos]
 
   // Sticky header: at the top the bar is transparent glass over the dark hero
@@ -396,13 +401,23 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
         </div>
       </div>
 
-      {/* Trusted by */}
-      <div style={{ flex: '0 0 auto', position: 'relative', zIndex: 10, padding: '14px 0 22px', borderTop: '1px solid rgba(255,255,255,0.10)', background: 'rgba(9,38,43,0.35)', backdropFilter: 'blur(6px)' }}>
-        <div style={{ textAlign: 'center', fontSize: 12, letterSpacing: 3.5, fontWeight: 600, color: 'rgba(214,238,242,0.65)', textTransform: 'uppercase', marginBottom: 12, padding: '0 16px' }}>Trusted by leading clinics &amp; institutions</div>
+      {/* Trusted by — one section-wide hover flips the whole band to a light,
+          full-colour state (styling lives in .ds-trust-* in Hero.css). */}
+      <div className="ds-trust-section" style={{ flex: '0 0 auto', position: 'relative', zIndex: 10, padding: '14px 0 22px' }}>
+        <div className="ds-trust-title" style={{ textAlign: 'center', fontSize: 12, letterSpacing: 3.5, fontWeight: 600, textTransform: 'uppercase', marginBottom: 12, padding: '0 16px' }}>Trusted by leading clinics &amp; institutions</div>
         <div style={{ overflow: 'hidden', position: 'relative', WebkitMaskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)', maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)' }}>
           <div style={{ display: 'flex', gap: isMobile ? 56 : 110, width: 'max-content', alignItems: 'center', animation: `marquee ${marqueeSpeed}s linear infinite` }}>
             {marqueeLogos.map((logo, i) => (
-              <span key={i} style={{ fontSize: isMobile ? 16 : 21, fontWeight: 700, color: 'rgba(222,242,246,0.55)', whiteSpace: 'nowrap' }}>{logo}</span>
+              <span key={i} className="ds-trust-logo" tabIndex={0} aria-label={logo.alt} style={{ height: isMobile ? 26 : 36, flexShrink: 0 }}>
+                <img
+                  src={logo.color}
+                  alt={logo.alt}
+                  draggable={false}
+                  className="ds-trust-logo-img"
+                  style={{ maxWidth: isMobile ? 118 : 164 }}
+                />
+                <img src={logo.mono} alt="" aria-hidden="true" draggable={false} className="ds-trust-logo-img ds-trust-logo-mono" />
+              </span>
             ))}
           </div>
         </div>

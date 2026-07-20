@@ -74,3 +74,82 @@
 .ds-hburger:hover {
   opacity: 0.8;
 }
+
+/* Trusted-by strip — a single section-wide hover. At rest it's a dark-teal band
+   with baked medium-grey logos; hovering ANYWHERE in the band eases the whole
+   thing to a light state and cross-fades every logo to full colour. Two stacked
+   images (colour in flow defines the box; mono absolutely overlaid) so there's
+   no layout shift or flicker, and the marquee keeps running throughout. */
+.ds-trust-section {
+  background: rgba(9, 38, 43, 0.35);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  /* transparent at rest so the bottom hairline eases in with the background */
+  border-bottom: 1px solid transparent;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  transition: background 0.5s ease-in-out, border-color 0.5s ease-in-out, box-shadow 0.5s ease-in-out;
+}
+.ds-trust-section:hover,
+.ds-trust-section:focus-within {
+  background: #F7FBFC;
+  border-top-color: rgba(27, 71, 84, 0.1);
+  /* crisp but soft neutral hairline + ambient shadow so the light band reads as
+     a premium panel floating just above the next section */
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+  box-shadow:
+    0 12px 40px rgba(15, 23, 42, 0.08),
+    0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.ds-trust-title {
+  color: rgba(214, 238, 242, 0.65);
+  transition: color 0.5s ease-in-out;
+}
+.ds-trust-section:hover .ds-trust-title,
+.ds-trust-section:focus-within .ds-trust-title {
+  color: rgba(27, 71, 84, 0.58);
+}
+
+.ds-trust-logo {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.92;
+  transition: opacity 0.5s ease-in-out;
+  outline: none;
+}
+.ds-trust-section:hover .ds-trust-logo,
+.ds-trust-section:focus-within .ds-trust-logo {
+  opacity: 1;
+}
+.ds-trust-logo-img {
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  user-select: none;
+}
+.ds-trust-logo-mono {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 1;
+  transition: opacity 0.5s ease-in-out;
+  pointer-events: none;
+}
+/* Section-wide reveal — every logo fades to colour together (not just the one
+   under the cursor). */
+.ds-trust-section:hover .ds-trust-logo-mono,
+.ds-trust-section:focus-within .ds-trust-logo-mono {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ds-trust-section,
+  .ds-trust-title,
+  .ds-trust-logo,
+  .ds-trust-logo-mono {
+    transition: none;
+  }
+}

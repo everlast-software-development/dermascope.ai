@@ -232,88 +232,88 @@ export default function PainPoints() {
 
         <Reveal style={{ marginTop: isMobile ? 44 : 64 }}>
           <ContainerScroll>
-          <div
-            className="ds-why-card"
-            style={isSmall ? { gridTemplateColumns: '1fr' } : undefined}
-          >
-            <div className="ds-why-bg" />
-
             <div
-              className="ds-why-left"
-              style={
-                isSmall
-                  ? { padding: isMobile ? '40px 24px 0' : '48px 40px 0', textAlign: 'center' }
-                  : undefined
-              }
+              className="ds-why-card"
+              style={isSmall ? { gridTemplateColumns: '1fr' } : undefined}
             >
-              <SectionSubtitle label="One Unified Platform" tone="dark" />
-              <h3
-                style={{
-                  margin: '0 0 20px',
-                  fontSize: 'clamp(30px,3vw,44px)',
-                  lineHeight: 1.1,
-                  fontWeight: 700,
-                  letterSpacing: '-0.02em',
-                  color: '#FFFFFF',
-                }}
-              >
-                That's Why We Built DermaScope.ai
-              </h3>
-              <p
-                style={{
-                  margin: '0 0 32px',
-                  maxWidth: 560,
-                  fontSize: 17,
-                  lineHeight: 1.7,
-                  color: '#D5E6EB',
-                }}
-              >
-                DermaScope.ai brings together AI-powered image analysis, structured clinical
-                documentation, longitudinal monitoring, research-ready data, and decision support into
-                one unified platform—helping healthcare professionals work with greater confidence,
-                consistency, and efficiency while keeping every final clinical decision in human
-                hands.
-              </p>
-              <a
-                href="#why"
-                className="ds-pill-cta"
-                style={{
-                  display: 'inline-block',
-                  background: 'linear-gradient(90deg, #007176, #17C7CC)',
-                  color: '#FFFFFF',
-                  fontSize: 15.5,
-                  fontWeight: 700,
-                  padding: '14px 28px',
-                  borderRadius: 999,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                See Why DermaScope ↓
-              </a>
-            </div>
+              <div className="ds-why-bg" />
 
-            <div
-              className="ds-why-right"
-              style={isSmall ? { padding: '12px 0 0', justifyContent: 'center' } : undefined}
-            >
-              <img
-                src="/mobile_mockup_home.png"
-                alt="DermaScope.ai mobile app"
-                className="ds-why-phone-img"
+              <div
+                className="ds-why-left"
                 style={
                   isSmall
-                    ? {
+                    ? { padding: isMobile ? '40px 24px 0' : '48px 40px 0', textAlign: 'center' }
+                    : undefined
+                }
+              >
+                <SectionSubtitle label="One Unified Platform" tone="dark" />
+                <h3
+                  style={{
+                    margin: '0 0 20px',
+                    fontSize: 'clamp(30px,3vw,44px)',
+                    lineHeight: 1.1,
+                    fontWeight: 700,
+                    letterSpacing: '-0.02em',
+                    color: '#FFFFFF',
+                  }}
+                >
+                  That's Why We Built DermaScope.ai
+                </h3>
+                <p
+                  style={{
+                    margin: '0 0 32px',
+                    maxWidth: 560,
+                    fontSize: 17,
+                    lineHeight: 1.7,
+                    color: '#D5E6EB',
+                  }}
+                >
+                  DermaScope.ai brings together AI-powered image analysis, structured clinical
+                  documentation, longitudinal monitoring, research-ready data, and decision support into
+                  one unified platform—helping healthcare professionals work with greater confidence,
+                  consistency, and efficiency while keeping every final clinical decision in human
+                  hands.
+                </p>
+                <a
+                  href="#why"
+                  className="ds-pill-cta"
+                  style={{
+                    display: 'inline-block',
+                    background: 'linear-gradient(90deg, #007176, #17C7CC)',
+                    color: '#FFFFFF',
+                    fontSize: 15.5,
+                    fontWeight: 700,
+                    padding: '14px 28px',
+                    borderRadius: 999,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  See Why DermaScope ↓
+                </a>
+              </div>
+
+              <div
+                className="ds-why-right"
+                style={isSmall ? { padding: '12px 0 0', justifyContent: 'center' } : undefined}
+              >
+                <img
+                  src="/mobile_mockup_home.webp"
+                  alt="DermaScope.ai mobile app"
+                  className="ds-why-phone-img"
+                  style={
+                    isSmall
+                      ? {
                         width: '100%',
                         maxWidth: isMobile ? 360 : 480,
                         height: 'auto',
                         transform: 'none',
                         margin: '0 auto',
                       }
-                    : undefined
-                }
-              />
+                      : undefined
+                  }
+                />
+              </div>
             </div>
-          </div>
           </ContainerScroll>
         </Reveal>
       </div>

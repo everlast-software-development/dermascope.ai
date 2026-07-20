@@ -60,7 +60,7 @@ export const painPoints = [
       'Consultation notes',
       'Clinical reports',
       'Procedure records',
-      'Coding support',
+      'ICD / CPT Coding support',
       'Follow-up summaries',
     ],
   },
@@ -79,7 +79,7 @@ export const painPoints = [
   },
   {
     title: 'Clinical Data Is Often Fragmented',
-    image: '/Clinical%20Data.jpeg',
+    image: '/Clinical%20Data.webp',
     body: 'Images, clinical notes, follow-up records, and patient information are frequently stored across multiple systems, making collaboration and continuity of care more difficult.',
     tagsLabel: 'Fragmented Data',
     tags: [
@@ -155,7 +155,7 @@ export const confidenceTags = ['Explainable', 'Transparent', 'Reviewable', 'Phys
 export const workflowOutputs = [
   'Clinical reports',
   'SOAP notes',
-  'Coding support',
+  'ICD / CPT Coding support',
   'Patient summaries',
   'Follow-up documentation',
 ]
@@ -177,37 +177,27 @@ export const whyChoose = [
   'Objective before-and-after monitoring',
 ]
 
-// How It Works — autoplaying steps
+// How It Works — autoplaying steps (four-step DermaScope workflow)
 export const steps = [
   {
     title: '01. Capture',
     body: 'Upload 3 standardized images (90°, 75°, and 40°) using a smartphone, dermatoscope, or clinical camera.',
-    media: { type: 'placeholder', text: '[ capture — 3-angle image upload ]' },
+    media: { type: 'image', src: '/Capture.webp', alt: 'Capturing standardized skin images from multiple angles' },
   },
   {
-    title: '02. Add Clinical Data',
-    body: "Enter the patient's symptoms, history, and clinical notes.",
-    media: { type: 'placeholder', text: '[ clinical data entry — symptoms & history ]' },
-  },
-  {
-    title: '03. AI Analysis',
+    title: '02. AI Analysis',
     body: 'AI analyzes the images, detects visual patterns, and supports the assessment of 300+ skin conditions.',
-    media: { type: 'placeholder', text: '[ AI analysis — visual pattern detection ]' },
+    media: { type: 'image', src: '/AI%20Analysis.webp', alt: 'AI analyzing images and detecting visual patterns' },
   },
   {
-    title: '04. Review Insights',
-    body: 'Receive explainable AI findings, red-flag alerts, severity assessment, and differential diagnosis support.',
-    media: { type: 'placeholder', text: '[ insights — red flags & differential support ]' },
+    title: '03. Generate Reports',
+    body: 'Create structured clinical reports, SOAP notes, patient summaries, and ICD / CPT Coding support in seconds.',
+    media: { type: 'image', src: '/Generate%20Reports.webp', alt: 'Generating structured clinical reports' },
   },
   {
-    title: '05. Generate Reports',
-    body: 'Create structured clinical reports, SOAP notes, patient summaries, and coding support in seconds.',
-    media: { type: 'phone', alt: 'DermaScope.ai mobile report' },
-  },
-  {
-    title: '06. Monitor Progress',
+    title: '04. Monitor Progress',
     body: 'Compare visits, track treatment response, and monitor disease progression with before-and-after analysis.',
-    media: { type: 'phone', alt: 'DermaScope.ai progress monitoring' },
+    media: { type: 'image', src: '/Monitor%20Progress.webp', alt: 'Monitoring patient progress and treatment response over time' },
   },
 ]
 
@@ -223,12 +213,13 @@ export const personas = [
       'Monitoring chronic skin conditions over time',
       'Spending excessive time on documentation',
     ],
+    // Ordered to pair 1:1 with `challenges` above (challenge[i] → helps[i]).
     helps: [
       'AI-assisted skin image analysis',
-      'Differential diagnosis support',
       'Red-flag detection',
-      'Automated clinical documentation',
+      'Differential diagnosis support',
       'Longitudinal treatment monitoring',
+      'Automated clinical documentation',
     ],
   },
   {
@@ -243,9 +234,9 @@ export const personas = [
     ],
     helps: [
       'AI-assisted skin assessment',
+      'Red-flag recognition',
       'Referral decision support',
       'Structured clinical reports',
-      'Red-flag recognition',
       'Standardized image documentation',
     ],
   },
@@ -260,11 +251,11 @@ export const personas = [
       'Communicating results with patients',
     ],
     helps: [
-      'Wound & scar analysis',
-      'Before & after comparison',
       'Healing progression tracking',
-      'Visual treatment reports',
+      'Wound & scar analysis',
       'Objective outcome documentation',
+      'Before & after comparison',
+      'Visual treatment reports',
     ],
   },
   {
@@ -279,8 +270,8 @@ export const personas = [
     ],
     helps: [
       'Standardized clinical imaging',
-      'Structured research-ready datasets',
       'AI feature extraction',
+      'Structured research-ready datasets',
       'Longitudinal patient data',
       'Explainable AI outputs',
     ],
@@ -296,10 +287,10 @@ export const personas = [
       'Scaling standardized care across teams',
     ],
     helps: [
-      'Unified clinical workflow',
       'Standardized documentation',
-      'AI-assisted quality support',
       'Enterprise-ready integration',
+      'AI-assisted quality support',
+      'Unified clinical workflow',
       'Better collaboration across teams',
     ],
   },
@@ -316,8 +307,8 @@ export const personas = [
     helps: [
       'Streamlined clinical workflows',
       'Standardized documentation',
-      'Faster reporting',
       'Improved operational efficiency',
+      'Faster reporting',
       'Better patient communication',
     ],
   },
@@ -338,7 +329,7 @@ export const navLinks = [
   { href: '#challenge', label: 'The Challenge' },
   { href: '#why', label: 'Why DermaScope' },
   { href: '#how', label: 'How It Works' },
-  { href: '#battle', label: 'Live Battle' },
+  // { href: '#battle', label: 'Live Battle' }, // temporarily hidden with the section
   { href: "#who", label: "Who It's For" },
 ]
 

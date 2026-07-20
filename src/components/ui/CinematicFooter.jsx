@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useResponsive } from '../../hooks/useResponsive'
@@ -453,14 +454,11 @@ export default function CinematicFooter() {
               </div>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12, marginTop: 8 }}>
-                <MagneticButton as="a" href="#" className="footer-pill-secondary" style={secondaryPill}>
+                <MagneticButton as={Link} to="/privacy-policy" className="footer-pill-secondary" style={secondaryPill}>
                   Privacy Policy
                 </MagneticButton>
-                <MagneticButton as="a" href="#" className="footer-pill-secondary" style={secondaryPill}>
-                  Terms of Service
-                </MagneticButton>
-                <MagneticButton as="a" href="#" className="footer-pill-secondary" style={secondaryPill}>
-                  Support
+                <MagneticButton as={Link} to="/delete-account" className="footer-pill-secondary" style={secondaryPill}>
+                  Delete Account
                 </MagneticButton>
               </div>
             </div>

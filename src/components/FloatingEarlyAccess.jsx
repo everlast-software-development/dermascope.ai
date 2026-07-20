@@ -4,6 +4,7 @@ import { Sparkles, X } from 'lucide-react'
 import EarlyAccessForm from './EarlyAccessForm'
 import SectionSubtitle from './SectionSubtitle'
 import { useResponsive } from '../hooks/useResponsive'
+import './FloatingEarlyAccess.css'
 
 // Persistent glass CTA (left, vertically centered on desktop/tablet; bottom-center
 // on phones) that opens the existing Join Early Access form inside a right-side
@@ -11,11 +12,6 @@ import { useResponsive } from '../hooks/useResponsive'
 export default function FloatingEarlyAccess() {
   const [open, setOpen] = useState(false)
   const { isMobile, isTablet } = useResponsive()
-
-  const reduce =
-    typeof window !== 'undefined' &&
-    window.matchMedia &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   // Close on Escape + lock body scroll while the drawer is open.
   useEffect(() => {
@@ -53,52 +49,33 @@ export default function FloatingEarlyAccess() {
           ...(isMobile ? { left: 20, bottom: 18 } : { left: 20, bottom: 24 }),
         }}
       >
-        <motion.button
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label="Join Early Access"
-          className="ds-floating-cta"
-          initial={false}
-          animate={
-            reduce
-              ? undefined
-              : {
-                  y: [0, -6, 0],
-                  boxShadow: [
-                    '0 12px 30px -6px rgba(14,202,208,0.42), 0 6px 18px rgba(0,20,24,0.28), inset 0 1px 0 rgba(255,255,255,0.4)',
-                    '0 18px 42px -6px rgba(14,202,208,0.7), 0 6px 18px rgba(0,20,24,0.28), inset 0 1px 0 rgba(255,255,255,0.5)',
-                    '0 12px 30px -6px rgba(14,202,208,0.42), 0 6px 18px rgba(0,20,24,0.28), inset 0 1px 0 rgba(255,255,255,0.4)',
-                  ],
-                }
-          }
-          transition={reduce ? undefined : { duration: 3.4, repeat: Infinity, ease: 'easeInOut' }}
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.97 }}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: isMobile ? '12px 20px' : '14px 22px',
-            borderRadius: 999,
-            border: 'none',
-            background:
-              'linear-gradient(135deg, rgba(26,75,83,0.94) 0%, rgba(20,110,124,0.92) 45%, rgba(14,202,208,0.94) 100%)',
-            backdropFilter: 'blur(14px) saturate(160%)',
-            WebkitBackdropFilter: 'blur(14px) saturate(160%)',
-            boxShadow:
-              '0 12px 30px -6px rgba(14,202,208,0.42), 0 6px 18px rgba(0,20,24,0.28), inset 0 1px 0 rgba(255,255,255,0.4)',
-            color: '#FFFFFF',
-            fontFamily: 'inherit',
-            fontWeight: 700,
-            fontSize: isMobile ? 14 : 14.5,
-            letterSpacing: '0.01em',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <Sparkles size={18} strokeWidth={2} />
-          Join Early Access
-        </motion.button>
+        {/* Wrapper does the subtle idle bob; the button handles hover/press —
+            separate elements so the transforms never fight (see the CSS). */}
+        <span className="ds-cta-float">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label="Join Early Access"
+            className="ds-floating-cta"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: isMobile ? '12px 20px' : '14px 22px',
+              border: 'none',
+              color: '#FFFFFF',
+              fontFamily: 'inherit',
+              fontWeight: 700,
+              fontSize: isMobile ? 14 : 14.5,
+              letterSpacing: '0.01em',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <Sparkles size={18} strokeWidth={2} className="ds-cta-icon" />
+            Join Early Access
+          </button>
+        </span>
       </div>
 
       {/* ── Drawer ───────────────────────────────────────────────────── */}

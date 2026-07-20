@@ -5,6 +5,7 @@ import SectionSubtitle from './SectionSubtitle'
 import DisplayCards from './ui/DisplayCards'
 import MelanomaDepthSim from './ui/MelanomaDepthSim'
 import ConfidenceDashboard from './ui/ConfidenceDashboard'
+import OrbitalImaging from './ui/OrbitalImaging'
 import { useResponsive } from '../hooks/useResponsive'
 import {
   angleWhy,
@@ -36,7 +37,18 @@ const angleCards = [
   },
 ]
 
-const section = { background: '#FFFFFF', padding: '110px 48px 40px', scrollMarginTop: 70 }
+// Subtle branded backdrop that fills the whole section: a faint teal dot mesh
+// over white, with a soft cyan wash toward the top-right so the orbit area
+// reads with gentle depth. Light and clean — no dark blocks.
+const section = {
+  background: '#FFFFFF',
+  backgroundImage:
+    'radial-gradient(120% 80% at 82% 8%, rgba(165,231,248,0.14), rgba(165,231,248,0) 46%),' +
+    'radial-gradient(rgba(40,95,102,0.05) 1px, transparent 1.6px)',
+  backgroundSize: 'auto, 26px 26px',
+  padding: '110px 48px 40px',
+  scrollMarginTop: 70,
+}
 
 const numberStyle = {
   fontSize: 56,
@@ -147,15 +159,9 @@ function AngleFeature() {
             inline padding wins on small screens so the frame can't overflow. */}
         <div
           className="ds-dc-frame"
-          style={
-            isMobile
-              ? { padding: '14px 14px 44px' }
-              : isTablet
-                ? { padding: '18px 70px 80px 18px' }
-                : undefined
-          }
+          style={{ padding: isMobile ? '28px 18px' : isTablet ? '32px 26px' : '36px 30px' }}
         >
-          <DisplayCards cards={angleCards} />
+          <OrbitalImaging />
         </div>
       </div>
     </Reveal>
@@ -188,13 +194,13 @@ function BeforeAfter() {
         }}
       >
         <img
-          src="/after.png"
+          src="/after.webp"
           alt="Follow-up visit — after"
           draggable={false}
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
         />
         <img
-          src="/before.png"
+          src="/before.webp"
           alt="Baseline visit — before"
           draggable={false}
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', clipPath: `inset(0 ${100 - slider}% 0 0)` }}
@@ -352,8 +358,72 @@ export default function WhyDermaScope() {
           </p>
         </Reveal>
 
-        {/* 01 — Multi-angle imaging */}
-        <AngleFeature />
+        {/* 01 — Multi-angle imaging — orbital illustration inside the right column */}
+        <Reveal
+          style={{
+            display: 'grid',
+            // Tablet mirrors desktop's two-column layout; only phones stack.
+            gridTemplateColumns: isMobile ? '1fr' : '0.66fr 1fr',
+            gap: rowGap,
+            alignItems: 'center',
+            marginBottom: rowMb,
+          }}
+        >
+          <div>
+            <div style={numberStyle}>01</div>
+            <h3 style={h3Style}>Multi-Angle Clinical Imaging</h3>
+            <p style={{ margin: '0 0 14px', ...bodyStyle }}>
+              Capture 3 standardized images from 90°, 75°, and 40° to provide a more complete clinical
+              view of the affected area.
+            </p>
+            <p style={{ margin: '0 0 32px', ...bodyStyle }}>
+              Each angle contributes unique visual information that helps the AI generate more reliable
+              clinical insights.
+            </p>
+            <div style={{ display: 'grid', gap: 14, borderTop: '1px solid #DCECEF', paddingTop: 26 }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: '#7A8B92',
+                }}
+              >
+                Why Multiple Angles Matter
+              </div>
+              {angleWhy.map((w) => (
+                <Check key={w}>{w}</Check>
+              ))}
+            </div>
+          </div>
+
+          {/* Right column: orbital floats on the section background (no panel).
+              Two edgeless radial glows add branded depth behind the orbit — a
+              broad ambient halo plus the orbital's own core halo. */}
+          <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <div
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%,-50%)',
+                width: 'min(94%, 620px)',
+                aspectRatio: '1 / 0.92',
+                borderRadius: '50%',
+                background:
+                  'radial-gradient(circle, rgba(165,231,248,0.28) 0%, rgba(76,143,136,0.10) 42%, rgba(76,143,136,0) 70%)',
+                filter: 'blur(6px)',
+                pointerEvents: 'none',
+                zIndex: 0,
+              }}
+            />
+            <div style={{ position: 'relative', zIndex: 1, width: '100%' }}>
+              <OrbitalImaging />
+            </div>
+          </div>
+        </Reveal>
 
         {/* 02 — AI Skin Intelligence */}
         <Reveal

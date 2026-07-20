@@ -1,0 +1,87 @@
+/* Who It's For — premium interactive personas. Hover / float / reduced-motion
+   live here; layout + entrance stagger are driven by framer-motion inline.
+   All motion is transform/opacity only (GPU-accelerated, no layout thrash). */
+
+/* ── Left nav persona cards ─────────────────────────────────────────── */
+.ds-persona-card {
+  transition: transform .3s cubic-bezier(.22, .61, .36, 1), box-shadow .3s ease, border-color .3s ease, background .3s ease;
+  will-change: transform;
+}
+.ds-persona-card:hover {
+  transform: translateY(-3px);
+}
+.ds-persona-icon {
+  transition: transform .3s cubic-bezier(.22, .61, .36, 1);
+  will-change: transform;
+}
+.ds-persona-card:hover .ds-persona-icon {
+  transform: scale(1.12) rotate(-6deg);
+}
+
+/* ── Right content: Challenge → Solution flow rows ──────────────────── */
+/* No borders at rest — a subtle card only surfaces on hover (whitespace-led). */
+.ds-flow-pair {
+  transition: background .28s ease, box-shadow .28s ease, transform .28s ease;
+  will-change: transform;
+}
+.ds-flow-pair:hover {
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: 0 18px 42px -26px rgba(16, 55, 62, 0.34);
+  transform: translateY(-2px);
+}
+.ds-flow-badge {
+  transition: transform .28s cubic-bezier(.22, .61, .36, 1);
+  will-change: transform;
+}
+.ds-flow-pair:hover .ds-flow-badge {
+  transform: scale(1.12);
+}
+
+/* ── Ambient float + glow on the active content ─────────────────────── */
+@keyframes ds-who-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -5px, 0); }
+}
+.ds-who-float {
+  animation: ds-who-float 7s ease-in-out infinite;
+  will-change: transform;
+}
+@keyframes ds-who-glow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.9; }
+}
+.ds-who-glow {
+  animation: ds-who-glow 8s ease-in-out infinite;
+}
+
+/* ── Mobile persona carousel — hide scrollbar, keep swipe ───────────── */
+.ds-persona-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.ds-persona-scroll::-webkit-scrollbar {
+  height: 0;
+  width: 0;
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-persona-card,
+  .ds-flow-pair,
+  .ds-persona-icon,
+  .ds-flow-badge {
+    transition: none;
+  }
+  .ds-persona-card:hover,
+  .ds-flow-pair:hover {
+    transform: none;
+  }
+  .ds-persona-card:hover .ds-persona-icon,
+  .ds-flow-pair:hover .ds-flow-badge {
+    transform: none;
+  }
+  .ds-who-float,
+  .ds-who-glow {
+    animation: none;
+  }
+}

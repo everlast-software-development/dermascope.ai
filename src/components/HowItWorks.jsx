@@ -57,6 +57,7 @@ function MediaLayer({ media, active, position, isMobile, phoneWidth }) {
   const translateY = active ? 0 : position === 'past' ? -50 : 50
   const scale = active ? 1 : 0.92
   const isPhone = media.type === 'phone'
+  const isImage = media.type === 'image'
 
   return (
     <div
@@ -66,7 +67,7 @@ function MediaLayer({ media, active, position, isMobile, phoneWidth }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: isPhone ? 0 : isMobile ? 20 : 44,
+        padding: isImage ? 0 : isPhone ? 0 : isMobile ? 20 : 44,
         transition: 'opacity .55s ease, transform .55s cubic-bezier(.22,.61,.36,1)',
         opacity: active ? 1 : 0,
         transform: `translateY(${translateY}px) scale(${scale})`,
@@ -74,7 +75,39 @@ function MediaLayer({ media, active, position, isMobile, phoneWidth }) {
         willChange: 'opacity, transform',
       }}
     >
-      {isPhone ? (
+      {isImage ? (
+        // Round the corners on a wrapper via overflow:hidden (a vector clip that
+        // anti-aliases cleanly) rather than border-radius on the <img> itself,
+        // which Chrome renders jagged for replaced elements inside a composited
+        // (transform/will-change) layer.
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            borderRadius: 22,
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            // Frameless: just a soft ambient shadow so the image reads as part of
+            // the section, not a card sitting on top of it.
+            boxShadow: '0 44px 90px -44px rgba(0,0,0,0.62)',
+          }}
+        >
+          <img
+            src={media.src}
+            alt={media.alt}
+            loading="lazy"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              objectPosition: 'center',
+              display: 'block',
+            }}
+          />
+        </div>
+      ) : isPhone ? (
         <PhoneMockup alt={media.alt} width={phoneWidth} />
       ) : (
         <div
@@ -210,7 +243,8 @@ export default function HowItWorks() {
   }
 
   const phoneWidth = isMobile ? 300 : isTablet ? 340 : 264
-  const mediaHeight = isMobile ? 500 : isTablet ? 620 : 'min(600px, 60vh)'
+  // Larger, frameless product image (~20-30% bigger than the old card).
+  const mediaHeight = isMobile ? 540 : isTablet ? 740 : 'min(720px, 72vh)'
 
   return (
     <section
@@ -359,18 +393,36 @@ export default function HowItWorks() {
               })}
             </div>
 
-            {/* Media panel */}
+            {/* Media stage — frameless. The image is the hero; a soft teal glow
+                sits behind it to integrate with the section (no card/border). */}
             <div
               style={{
                 position: 'relative',
-                width: '100%',
                 height: mediaHeight,
-                borderRadius: 28,
-                border: '1px solid rgba(165,231,248,0.18)',
-                background: 'rgba(255,255,255,0.03)',
-                overflow: 'hidden',
+                aspectRatio: '3 / 4',
+                width: 'auto',
+                maxWidth: '100%',
+                margin: '0 auto',
               }}
             >
+              {/* Ambient teal glow behind the product image */}
+              <div
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: '50%',
+                  width: '118%',
+                  height: '104%',
+                  transform: 'translate(-50%,-50%)',
+                  borderRadius: '50%',
+                  background:
+                    'radial-gradient(closest-side, rgba(127,216,232,0.22), rgba(76,143,136,0.07) 46%, transparent 74%)',
+                  filter: 'blur(34px)',
+                  pointerEvents: 'none',
+                  zIndex: 0,
+                }}
+              />
               {steps.map((s, i) => (
                 <MediaLayer
                   key={s.title}

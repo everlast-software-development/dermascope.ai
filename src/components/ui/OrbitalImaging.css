@@ -1,0 +1,56 @@
+/* Radial orbital imaging — pure CSS animation (no per-frame JS) so rotation is
+   perfectly smooth/linear with no jitter. The rotor spins the whole group; each
+   card counter-spins (synced, reverse) to stay upright while orbiting. */
+@keyframes ds-orbit-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes ds-orbit-spin-rev {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+@keyframes ds-orbit-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -3px, 0); }
+}
+@keyframes ds-orbit-glow {
+  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.85; transform: translate(-50%, -50%) scale(1.05); }
+}
+@keyframes ds-orbit-corepulse {
+  0%, 100% { box-shadow: 0 20px 50px -20px rgba(16, 55, 62, 0.45), 0 0 0 0 rgba(127, 216, 232, 0.25); }
+  50% { box-shadow: 0 20px 50px -20px rgba(16, 55, 62, 0.5), 0 0 0 14px rgba(127, 216, 232, 0); }
+}
+
+.ds-orbit-rotor {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  animation: ds-orbit-spin 46s linear infinite;
+  will-change: transform;
+}
+.ds-orbit-counter {
+  transform-origin: 50% 50%;
+  animation: ds-orbit-spin-rev 46s linear infinite;
+  will-change: transform;
+}
+.ds-orbit-float {
+  animation: ds-orbit-float 5s ease-in-out infinite;
+  will-change: transform;
+}
+.ds-orbit-glow {
+  animation: ds-orbit-glow 4.5s ease-in-out infinite;
+}
+.ds-orbit-core {
+  animation: ds-orbit-corepulse 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-orbit-rotor,
+  .ds-orbit-counter,
+  .ds-orbit-float,
+  .ds-orbit-glow,
+  .ds-orbit-core {
+    animation: none !important;
+  }
+}

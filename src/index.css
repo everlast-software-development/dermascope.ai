@@ -235,13 +235,91 @@ button {
   transform: translateY(-2px);
 }
 
-.ds-submit {
-  transition: background 0.25s, transform 0.25s;
+/* ── Primary form CTA — premium micro-interactions ──────────────────
+   Motion is transform/opacity/box-shadow only. The gradient stays inline;
+   hover "brightens" it via a low-opacity white overlay (::before) and a light
+   shimmer sweeps across (::after) roughly every 7s (it rests off-screen the
+   rest of the cycle, so it never loops continuously). */
+.ds-form-cta {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: 0 10px 24px -12px rgba(0, 113, 118, 0.55);
+  transition: transform 0.28s ease-out, box-shadow 0.28s ease-out;
+  will-change: transform;
 }
-
-.ds-submit:hover {
-  background: #214e55;
-  transform: translateY(-1px);
+.ds-form-cta::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.2));
+  opacity: 0;
+  transition: opacity 0.28s ease-out;
+  pointer-events: none;
+}
+.ds-form-cta::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 55%;
+  z-index: 1;
+  background: linear-gradient(105deg, transparent 0%, rgba(255, 255, 255, 0.28) 50%, transparent 100%);
+  transform: translateX(-220%);
+  pointer-events: none;
+  animation: ds-cta-shimmer 7s ease-in-out infinite;
+}
+@keyframes ds-cta-shimmer {
+  0% { transform: translateX(-220%); }
+  14%, 100% { transform: translateX(320%); }
+}
+.ds-form-cta:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 18px 36px -12px rgba(23, 199, 204, 0.6), 0 8px 18px rgba(0, 20, 24, 0.16);
+}
+.ds-form-cta:hover::before {
+  opacity: 1;
+}
+.ds-form-cta:active {
+  transform: translateY(0) scale(0.98);
+  transition-duration: 0.1s;
+}
+.ds-form-cta:focus-visible {
+  outline: none;
+  box-shadow: 0 10px 24px -12px rgba(0, 113, 118, 0.55), 0 0 0 3px rgba(23, 199, 204, 0.4);
+}
+.ds-form-cta:disabled {
+  transform: none;
+}
+.ds-cta-label {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.ds-cta-arrow {
+  display: inline-block;
+  transition: transform 0.28s ease-out;
+  will-change: transform;
+}
+.ds-form-cta:hover .ds-cta-arrow {
+  transform: translateX(3px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ds-form-cta,
+  .ds-cta-arrow {
+    transition: none;
+  }
+  .ds-form-cta::after {
+    animation: none;
+  }
+  .ds-form-cta:hover,
+  .ds-form-cta:hover .ds-cta-arrow {
+    transform: none;
+  }
 }
 
 .ds-footlink {
