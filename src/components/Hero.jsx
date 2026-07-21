@@ -163,7 +163,14 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
     { color: '/alraha-logo.webp', mono: '/alraha-logo-mono.png', alt: 'Alraha Medical Center' },
     { color: '/aljameelaclub-dark-logo.webp', mono: '/aljameelaclub-dark-logo-mono.png', alt: 'Al Jameela Facial Club' },
   ]
-  const marqueeLogos = [...logos, ...logos, ...logos, ...logos]
+  // Seamless marquee: the track is TWO identical halves, each the logo list
+  // repeated enough to comfortably exceed any viewport. translate3d(-50%) then
+  // shifts by exactly one half, so the reset lands off-screen with no gap and
+  // no visible jump. Duration scales with the half width to hold a constant speed.
+  const marqueeReps = 4
+  const marqueeHalf = Array.from({ length: marqueeReps }, () => logos).flat()
+  const marqueeLogos = [...marqueeHalf, ...marqueeHalf]
+  const marqueeDuration = (marqueeSpeed * marqueeReps) / 2
 
   // Sticky header: at the top the bar is transparent glass over the dark hero
   // and the logo is rendered white; once scrolled it gains a solid light
@@ -406,9 +413,9 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
       <div className="ds-trust-section" style={{ flex: '0 0 auto', position: 'relative', zIndex: 10, padding: '14px 0 22px' }}>
         <div className="ds-trust-title" style={{ textAlign: 'center', fontSize: 12, letterSpacing: 3.5, fontWeight: 600, textTransform: 'uppercase', marginBottom: 12, padding: '0 16px' }}>Trusted by leading clinics &amp; institutions</div>
         <div style={{ overflow: 'hidden', position: 'relative', WebkitMaskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)', maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)' }}>
-          <div style={{ display: 'flex', gap: isMobile ? 56 : 110, width: 'max-content', alignItems: 'center', animation: `marquee ${marqueeSpeed}s linear infinite` }}>
+          <div style={{ display: 'flex', gap: isMobile ? 56 : 110, width: 'max-content', alignItems: 'center', animation: `marquee ${marqueeDuration}s linear infinite`, willChange: 'transform', backfaceVisibility: 'hidden' }}>
             {marqueeLogos.map((logo, i) => (
-              <span key={i} className="ds-trust-logo" tabIndex={0} aria-label={logo.alt} style={{ height: isMobile ? 26 : 36, flexShrink: 0 }}>
+              <span key={i} className="ds-trust-logo" style={{ height: isMobile ? 26 : 36, flexShrink: 0 }}>
                 <img
                   src={logo.color}
                   alt={logo.alt}

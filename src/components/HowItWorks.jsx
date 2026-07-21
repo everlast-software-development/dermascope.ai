@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Reveal from './Reveal'
@@ -159,6 +160,39 @@ export default function HowItWorks() {
   const stRef = useRef(null)
   const stepRef = useRef(0)
   stepRef.current = step
+  // Mobile/tablet pin (independent of the desktop pin so desktop is untouched).
+  const mobPinRef = useRef(null)
+  const mobStepRef = useRef(0)
+  mobStepRef.current = step
+
+  // ── Mobile & small tablets: same scroll-lock storytelling as desktop — pins
+  //    the section and advances the step index one swipe at a time (snap),
+  //    releasing only after the last step. Skipped for reduced motion. ───────
+  useEffect(() => {
+    if (reduce || !(isMobile || isTablet)) return
+    const el = mobPinRef.current
+    if (!el) return
+    const N = steps.length
+    const st = ScrollTrigger.create({
+      trigger: el,
+      start: 'top top',
+      end: () => `+=${Math.round(window.innerHeight * (N - 1) * 0.9)}`,
+      pin: true,
+      pinSpacing: true,
+      scrub: 0.5,
+      anticipatePin: 1,
+      snap: { snapTo: 1 / (N - 1), duration: { min: 0.25, max: 0.5 }, delay: 0.02, ease: 'power1.inOut' },
+      onUpdate: (self) => {
+        const idx = Math.min(N - 1, Math.max(0, Math.round(self.progress * (N - 1))))
+        if (idx !== mobStepRef.current) setStep(idx)
+      },
+    })
+    const t = setTimeout(() => ScrollTrigger.refresh(), 200)
+    return () => {
+      clearTimeout(t)
+      st.kill()
+    }
+  }, [isMobile, isTablet, reduce])
 
   // ── Desktop: pin + scrub through the steps with snapping ──────────────
   useEffect(() => {
@@ -199,9 +233,10 @@ export default function HowItWorks() {
     }
   }, [pinned])
 
-  // ── Tablet / mobile / reduced-motion: auto-advance fallback ───────────
+  // ── Desktop reduced-motion: auto-advance fallback. Mobile/tablet use the
+  //    tap-driven vertical timeline below, so they opt out. ─────────────────
   useEffect(() => {
-    if (pinned) return
+    if (pinned || isMobile || isTablet) return
     if (reduce) return
     const inc = 100 / (STEP_SECONDS * 10)
     const timer = setInterval(() => {
@@ -215,7 +250,7 @@ export default function HowItWorks() {
       })
     }, 100)
     return () => clearInterval(timer)
-  }, [pinned, playing, reduce])
+  }, [pinned, playing, reduce, isMobile, isTablet])
 
   // Pause the fallback autoplay when the section is off-screen.
   useEffect(() => {
@@ -245,6 +280,188 @@ export default function HowItWorks() {
   const phoneWidth = isMobile ? 300 : isTablet ? 340 : 264
   // Larger, frameless product image (~20-30% bigger than the old card).
   const mediaHeight = isMobile ? 540 : isTablet ? 740 : 'min(720px, 72vh)'
+
+  // ── Mobile & small tablets (≤1024px): a dedicated vertical timeline. Each
+  //    step reads number → title → description, and only the ACTIVE step reveals
+  //    its image directly beneath (fade + slide/height), one image at a time.
+  //    Tapping a step activates it. Desktop (below) is untouched. ────────────
+  if (isMobile || isTablet) {
+    // Reduced motion: no scroll-jacking — a static stacked list, each step
+    // paired with its own image directly beneath it.
+    if (reduce) {
+      return (
+        <section id="how" ref={sectionRef} style={{ ...section, padding: isMobile ? '64px 20px 72px' : '84px 40px 96px' }}>
+          <div style={{ position: 'relative', maxWidth: isTablet ? 680 : 520, margin: '0 auto' }}>
+            <div style={{ marginBottom: 36 }}>
+              <SectionSubtitle label="How It Works" tone="dark" />
+              <h2 style={{ margin: 0, fontSize: isMobile ? 'clamp(30px,8vw,40px)' : 44, lineHeight: 1.12, fontWeight: 700, letterSpacing: '-0.02em', color: '#FFFFFF' }}>
+                Simple. Fast. <span style={{ color: '#A5E7F8' }}>AI-Powered.</span>
+              </h2>
+            </div>
+            {steps.map((s, i) => {
+              const d = s.title.indexOf('. ')
+              const n = d > 0 ? s.title.slice(0, d) : String(i + 1).padStart(2, '0')
+              const l = d > 0 ? s.title.slice(d + 2) : s.title
+              return (
+                <div key={s.title} style={{ marginBottom: i < steps.length - 1 ? 40 : 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
+                    <span style={{ flexShrink: 0, width: 42, height: 42, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 15.5, fontWeight: 700, border: '2px solid #A5E7F8', background: '#A5E7F8', color: '#12333B' }}>{n}</span>
+                    <h3 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', color: '#FFFFFF' }}>{l}</h3>
+                  </div>
+                  <p style={{ margin: '0 0 16px', fontSize: 15, lineHeight: 1.62, color: '#D5E6EB' }}>{s.body}</p>
+                  <div style={{ padding: 10, borderRadius: 22, border: '1px solid rgba(255,255,255,0.09)', background: 'rgba(255,255,255,0.03)', boxShadow: '0 26px 54px -30px rgba(0,0,0,0.6)', overflow: 'hidden' }}>
+                    <img src={s.media.src} alt={s.media.alt} loading="lazy" style={{ display: 'block', width: '100%', height: 'auto', objectFit: 'contain', borderRadius: 14 }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )
+    }
+
+    // Guided scroll-lock (same storytelling as desktop): pin the section and
+    // advance one step per swipe; release to the next section after step 4.
+    return (
+      <section id="how" ref={sectionRef} style={{ ...section, padding: 0 }}>
+        <div
+          ref={mobPinRef}
+          style={{
+            position: 'relative',
+            minHeight: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: isMobile ? '84px 20px 30px' : '96px 40px 40px',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              top: -160,
+              left: -140,
+              width: isMobile ? 320 : 460,
+              height: isMobile ? 320 : 460,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle,rgba(165,231,248,0.14),transparent 65%)',
+              pointerEvents: 'none',
+            }}
+          />
+
+          <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: isTablet ? 620 : 520, margin: '0 auto', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <SectionSubtitle label="How It Works" tone="dark" style={{ marginBottom: 10 }} />
+            <h2 style={{ margin: '0 0 20px', fontSize: isMobile ? 25 : 30, lineHeight: 1.12, fontWeight: 700, letterSpacing: '-0.02em', color: '#FFFFFF' }}>
+              Simple. Fast. <span style={{ color: '#A5E7F8' }}>AI-Powered.</span>
+            </h2>
+
+          {(() => {
+            const s = steps[step]
+            const dot = s.title.indexOf('. ')
+            const num = dot > 0 ? s.title.slice(0, dot) : String(step + 1).padStart(2, '0')
+            const label = dot > 0 ? s.title.slice(dot + 2) : s.title
+            return (
+              <>
+                {/* Progress: numbered rail (done ✓ / active / upcoming) + counter */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                    {steps.map((st, i) => {
+                      const done = i < step
+                      const cur = i === step
+                      return (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', flex: i < steps.length - 1 ? 1 : '0 0 auto' }}>
+                          <span
+                            style={{
+                              flexShrink: 0,
+                              width: cur ? 30 : 24,
+                              height: cur ? 30 : 24,
+                              borderRadius: '50%',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: cur ? 13 : 11.5,
+                              fontWeight: 700,
+                              border: `2px solid ${done || cur ? '#A5E7F8' : 'rgba(213,230,235,0.28)'}`,
+                              background: cur ? '#A5E7F8' : done ? 'rgba(165,231,248,0.18)' : 'rgba(255,255,255,0.04)',
+                              color: cur ? '#12333B' : done ? '#A5E7F8' : 'rgba(213,230,235,0.5)',
+                              transition: 'all .35s ease',
+                            }}
+                          >
+                            {done ? '✓' : i + 1}
+                          </span>
+                          {i < steps.length - 1 && (
+                            <span style={{ flex: 1, height: 2, margin: '0 6px', borderRadius: 2, background: i < step ? '#A5E7F8' : 'rgba(213,230,235,0.16)', transition: 'background .35s ease' }} />
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <span
+                    style={{
+                      flexShrink: 0,
+                      fontFamily: 'ui-monospace,SFMono-Regular,monospace',
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      letterSpacing: '0.06em',
+                      color: 'rgba(213,230,235,0.7)',
+                    }}
+                  >
+                    {String(step + 1).padStart(2, '0')} / {String(steps.length).padStart(2, '0')}
+                  </span>
+                </div>
+
+                {/* Active step — number → title → description, then its image.
+                    Keyed by `step` so each swipe fades/slides the step up and
+                    fades its image in just after. One concept per screen. */}
+                <motion.div
+                  key={step}
+                  initial={reduce ? { opacity: 0 } : { opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.42, ease: [0.22, 0.61, 0.36, 1] }}
+                  style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <span style={{ flexShrink: 0, width: 42, height: 42, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 15.5, fontWeight: 700, border: '2px solid #A5E7F8', background: '#A5E7F8', color: '#12333B' }}>{num}</span>
+                    <h3 style={{ margin: 0, fontSize: 21, fontWeight: 700, letterSpacing: '-0.01em', color: '#FFFFFF' }}>{label}</h3>
+                  </div>
+                  <p style={{ margin: '12px 0 16px', fontSize: 15, lineHeight: 1.6, color: '#D5E6EB' }}>{s.body}</p>
+
+                  <motion.div
+                    initial={reduce ? { opacity: 0 } : { opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.42, delay: reduce ? 0 : 0.12, ease: [0.22, 0.61, 0.36, 1] }}
+                    style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        padding: 10,
+                        borderRadius: 22,
+                        border: '1px solid rgba(255,255,255,0.09)',
+                        background: 'rgba(255,255,255,0.03)',
+                        boxShadow: '0 26px 54px -30px rgba(0,0,0,0.6)',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <img
+                        src={s.media.src}
+                        alt={s.media.alt}
+                        loading="lazy"
+                        style={{ display: 'block', width: '100%', height: 'auto', maxHeight: '100%', objectFit: 'contain', borderRadius: 14, margin: '0 auto' }}
+                      />
+                    </div>
+                  </motion.div>
+                </motion.div>
+              </>
+            )
+          })()}
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section

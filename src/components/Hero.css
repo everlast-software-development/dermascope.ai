@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&display=swap');
 
-@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes marquee { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-50%, 0, 0); } }
 @keyframes floatA { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 @keyframes floatB { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(9px); } }
 @keyframes orbitSpin {
