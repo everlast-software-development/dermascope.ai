@@ -325,6 +325,19 @@ export const roleOptions = [
   'Other',
 ]
 
+// ── Early Access form option sets ──────────────────────────────
+// Main challenges to solve — rendered as multi-select pills.
+export const challengeOptions = [
+  'Diagnosis Support',
+  'Documentation',
+  'Coding',
+  'Insurance Reports',
+  'Patient Education',
+  'Follow-up Monitoring',
+  'AI Skin Analysis',
+  'Enterprise Integration',
+]
+
 export const navLinks = [
   { href: '#challenge', label: 'The Challenge' },
   { href: '#why', label: 'Why DermaScope' },

@@ -109,12 +109,26 @@ function emailLayout({ preheader = '', body = '' }) {
 }
 
 // ─── Validate contact payload ─────────────────────────────────────────────────
-// Matches the early-access form: name + email are required; role, org and
-// message are optional.
-function validateContact({ name, email }) {
+// Mirrors the early-access form's required fields (client validates first; the
+// server is the backstop). Practice-information fields (physicians, emr,
+// challenges) remain optional.
+function isConsented(v) {
+  return v === true || (typeof v === 'string' && ['true', 'yes', 'on', '1'].includes(v.trim().toLowerCase()));
+}
+
+function validateContact(b) {
   const errors = [];
-  if (!name  || typeof name  !== 'string' || name.trim().length < 2) errors.push('Please enter your full name.');
-  if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('Please enter a valid email address.');
+  const req = (v) => typeof v === 'string' && v.trim().length > 0;
+  if (!b.name || typeof b.name !== 'string' || b.name.trim().length < 2) errors.push('Please enter your full name.');
+  if (!b.email || typeof b.email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(b.email)) errors.push('Please enter a valid email address.');
+  if (!req(b.title))        errors.push('Please enter your professional title.');
+  if (!req(b.specialty))    errors.push('Please enter your specialty.');
+  if (!req(b.organization)) errors.push('Please enter your clinic, hospital, or organization.');
+  if (!req(b.country))      errors.push('Please select your country.');
+  if (!req(b.city))         errors.push('Please enter your city.');
+  if (!req(b.phone))        errors.push('Please enter your mobile / WhatsApp number.');
+  if (!req(b.interest))     errors.push('Please enter your type of interest.');
+  if (!isConsented(b.consent)) errors.push('Please confirm your consent to be contacted.');
   return errors;
 }
 
@@ -122,7 +136,7 @@ function validateContact({ name, email }) {
 app.post('/api/contact', async (req, res) => {
   const { name, email } = req.body;
 
-  const errors = validateContact({ name, email });
+  const errors = validateContact(req.body || {});
   if (errors.length > 0) {
     return res.status(400).json({ success: false, errors });
   }
@@ -142,17 +156,28 @@ app.post('/api/contact', async (req, res) => {
   // and a sensible order; unknown keys are included with a prettified label.
   const FIELD_META = {
     name:         { label: 'Full Name' },
-    email:        { label: 'Email Address', isEmail: true },
-    org:          { label: 'Clinic / Organization' },
-    organization: { label: 'Clinic / Organization' },
-    company:      { label: 'Clinic / Organization' },
+    title:        { label: 'Professional Title' },
+    specialty:    { label: 'Specialty' },
+    org:          { label: 'Clinic / Hospital / Organization' },
+    organization: { label: 'Clinic / Hospital / Organization' },
+    company:      { label: 'Clinic / Hospital / Organization' },
     role:         { label: 'Role' },
     country:      { label: 'Country' },
-    phone:        { label: 'Phone' },
+    city:         { label: 'City' },
+    email:        { label: 'Email Address', isEmail: true },
+    phone:        { label: 'Mobile / WhatsApp' },
+    interest:     { label: 'Type of Interest' },
+    physicians:   { label: 'Physicians in Organization' },
+    emr:          { label: 'Current EMR / HIS' },
+    challenges:   { label: 'Main Challenge to Solve', type: 'list' },
+    consent:      { label: 'Consent', type: 'boolean' },
     message:      { label: 'Additional Notes' },
     notes:        { label: 'Additional Notes' },
   };
-  const FIELD_ORDER = ['name', 'email', 'org', 'organization', 'company', 'role', 'country', 'phone', 'message', 'notes'];
+  const FIELD_ORDER = [
+    'name', 'title', 'specialty', 'organization', 'org', 'company', 'role', 'country', 'city',
+    'email', 'phone', 'interest', 'physicians', 'emr', 'challenges', 'message', 'notes', 'consent',
+  ];
 
   const prettify = (key) =>
     key.replace(/[_-]+/g, ' ')
@@ -165,14 +190,32 @@ app.post('/api/contact', async (req, res) => {
   const addField = (key) => {
     if (used.has(key)) return;
     const raw = body[key];
-    if (raw == null || String(raw).trim() === '') return;
     const meta = FIELD_META[key] || { label: prettify(key) };
-    fields.push({
-      label: meta.label,
-      value: String(raw).trim(),
-      isEmail: !!meta.isEmail,
-    });
+    const type = meta.type || (meta.isEmail ? 'email' : 'text');
+
+    // Consent — always shown as an explicit Yes / No (skip only if absent).
+    if (type === 'boolean') {
+      if (raw === undefined) return;
+      used.add(key);
+      fields.push({ label: meta.label, type: 'boolean', value: isConsented(raw) ? 'Yes' : 'No' });
+      return;
+    }
+
+    // Multi-select (e.g. Main Challenge to Solve) — rendered as a bulleted list.
+    if (type === 'list') {
+      const items = (Array.isArray(raw) ? raw : String(raw ?? '').split(','))
+        .map((s) => String(s).trim())
+        .filter(Boolean);
+      if (items.length === 0) return; // optional — skip when nothing selected
+      used.add(key);
+      fields.push({ label: meta.label, type: 'list', items });
+      return;
+    }
+
+    // Plain text / email.
+    if (raw == null || String(raw).trim() === '') return;
     used.add(key);
+    fields.push({ label: meta.label, type, value: String(raw).trim() });
   };
   FIELD_ORDER.forEach(addField);        // preferred fields, in order
   Object.keys(body).forEach(addField);  // then any additional submitted fields
@@ -181,9 +224,21 @@ app.post('/api/contact', async (req, res) => {
   // muted label above a soft, borderless rounded value block. No tables, icons,
   // dividers or cards. Multi-line values expand naturally (like a textarea).
   const fieldsHtml = fields.map((f, i) => {
-    const inner = f.isEmail
-      ? `<a href="mailto:${escapeHtml(f.value)}" style="color:#1B4754;text-decoration:none;">${escapeHtml(f.value)}</a>`
-      : escapeHtml(f.value);
+    let inner;
+    if (f.type === 'list') {
+      inner = f.items.map((it, j) =>
+        `<div style="display:flex;align-items:flex-start;gap:11px;${j === f.items.length - 1 ? '' : 'margin:0 0 10px;'}">
+                  <span style="flex:0 0 auto;margin-top:9px;width:6px;height:6px;border-radius:50%;background:#4C8F88;"></span>
+                  <span>${escapeHtml(it)}</span>
+                </div>`).join('');
+    } else if (f.type === 'boolean') {
+      const yes = f.value === 'Yes';
+      inner = `<span style="font-weight:700;color:${yes ? '#1B6E7C' : '#C0392B'};">${escapeHtml(f.value)}</span>`;
+    } else if (f.type === 'email') {
+      inner = `<a href="mailto:${escapeHtml(f.value)}" style="color:#1B4754;text-decoration:none;">${escapeHtml(f.value)}</a>`;
+    } else {
+      inner = escapeHtml(f.value);
+    }
     const mb = i === fields.length - 1 ? '0' : '26px';
     return `
               <div style="margin:0 0 ${mb};">
@@ -192,7 +247,10 @@ app.post('/api/contact', async (req, res) => {
               </div>`;
   }).join('');
 
-  const fieldsText = fields.map((f) => `${f.label}: ${f.value}`).join('\n');
+  const fieldsText = fields.map((f) => {
+    if (f.type === 'list') return `${f.label}:\n${f.items.map((it) => `  • ${it}`).join('\n')}`;
+    return `${f.label}: ${f.value}`;
+  }).join('\n');
 
   const mailOptions = {
     from:    `"DermaScope.ai" <${process.env.EMAIL_USER}>`,

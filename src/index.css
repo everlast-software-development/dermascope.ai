@@ -340,6 +340,56 @@ button {
   box-shadow: 0 0 0 3px rgba(165, 231, 248, 0.4);
 }
 
+/* ── Early Access form — pills, consent, spinner ── */
+/* Accessible visually-hidden input (keeps native checkbox semantics + keyboard
+   behaviour while the styled box does the visuals). */
+.ds-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Multi-select challenge pills */
+.ds-pill:hover {
+  border-color: #4c8f88;
+}
+.ds-pill:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(165, 231, 248, 0.5);
+}
+
+/* Keyboard focus ring for the styled consent checkbox */
+.ds-visually-hidden:focus-visible + span {
+  box-shadow: 0 0 0 3px rgba(165, 231, 248, 0.55);
+}
+
+/* Submit loading spinner */
+.ds-spinner {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: ds-spin 0.7s linear infinite;
+}
+@keyframes ds-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ds-spinner {
+    animation-duration: 1.4s;
+  }
+}
+
 /* ── Display Cards — Multi-Angle Clinical Imaging ── */
 /* Rounded textured frame that sits behind the stack (right column). The image
    lives on a ::before layer so its border-radius clips itself, never the cards. */
