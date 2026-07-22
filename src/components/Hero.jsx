@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useResponsive } from '../hooks/useResponsive'
 import SectionSubtitle from './SectionSubtitle'
-import VideoModal from './VideoModal'
 import './Hero.css'
 
 const teal = '#1e8a97'
@@ -178,7 +177,6 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
   // background and the logo shows its real (brand) colors.
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [videoOpen, setVideoOpen] = useState(false)
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
     onScroll()
@@ -342,18 +340,12 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
             </p>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start', flexWrap: 'wrap', gap: isMobile ? 14 : 22, marginTop: 4 }}>
               <a href="#demo" className="ds-hbtn" style={{ background: 'linear-gradient(90deg, #007176, #17C7CC)', color: '#ffffff', fontWeight: 600, fontSize: 15.5, padding: '15px 32px', borderRadius: 999, boxShadow: '0 10px 28px rgba(0,20,24,0.35)', textDecoration: 'none' }}>Join Early Access</a>
-              <button
-                type="button"
-                onClick={() => setVideoOpen(true)}
-                aria-label="Watch the How It Works video"
-                className="ds-hsecondary"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 12, color: '#eaf7f9', fontFamily: 'inherit', fontWeight: 600, fontSize: 15.5, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer' }}
-              >
+              <a href="#how" className="ds-hsecondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, color: '#eaf7f9', fontWeight: 600, fontSize: 15.5, textDecoration: 'none' }}>
                 <span className="ds-hplay" style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.25)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="14" height="16" viewBox="0 0 14 16" fill="none"><path d="M1 1.8v12.4c0 .8.9 1.3 1.6.9l10-6.2c.6-.4.6-1.4 0-1.8l-10-6.2C1.9.5 1 1 1 1.8z" fill="#7fd8e8" /></svg>
                 </span>
                 How It Works
-              </button>
+              </a>
             </div>
           </div>
 
@@ -437,8 +429,6 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
           </div>
         </div>
       </div>
-
-      <VideoModal open={videoOpen} onClose={() => setVideoOpen(false)} />
     </header>
   )
 }
