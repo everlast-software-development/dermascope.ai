@@ -408,8 +408,14 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
         </div>
       </div>
 
-      {/* Trusted by — one section-wide hover flips the whole band to a light,
-          full-colour state (styling lives in .ds-trust-* in Hero.css). */}
+      {/* ── "Trusted by leading clinics & institutions" logo strip ─────────────
+          TEMPORARILY DISABLED — intentionally hidden for now. Do NOT delete.
+          To re-enable, simply uncomment the block below. It's a `flex: 0 0 auto`
+          sibling, so keeping it commented leaves no empty space in the hero.
+          (Marquee styling lives in .ds-trust-* in Hero.css; logos come from the
+          `logos` array. On hover the whole band flips to a light, full-colour
+          state.) */}
+      {/*
       <div className="ds-trust-section" style={{ flex: '0 0 auto', position: 'relative', zIndex: 10, padding: '14px 0 22px' }}>
         <div className="ds-trust-title" style={{ textAlign: 'center', fontSize: 12, letterSpacing: 3.5, fontWeight: 600, textTransform: 'uppercase', marginBottom: 12, padding: '0 16px' }}>Trusted by leading clinics &amp; institutions</div>
         <div style={{ overflow: 'hidden', position: 'relative', WebkitMaskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)', maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)' }}>
@@ -429,6 +435,7 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
           </div>
         </div>
       </div>
+      */}
     </header>
   )
 }
