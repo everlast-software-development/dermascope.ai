@@ -497,3 +497,53 @@ export const dermCases = [
     ],
   },
 ]
+
+// ── Frequently Asked Questions ──────────────────────────────────────────────
+// Each entry is { q, a }. Edit the `q` / `a` strings in place — the FAQ
+// component renders straight from this array.
+export const faqs = [
+  {
+    q: 'Is DermaScope.ai designed to replace dermatologists?',
+    a: 'No. DermaScope.ai is designed to support physicians, not replace them. It provides AI-assisted analysis, documentation, coding suggestions, and workflow support, while the licensed physician remains responsible for final diagnosis, treatment decisions, prescriptions, procedures, referrals, and patient counseling.',
+  },
+  {
+    q: 'Can DermaScope.ai diagnose skin cancer?',
+    a: 'DermaScope.ai is a clinical decision-support platform. It may help identify suspicious visual features and red flags for physician review, but it does not replace dermoscopy, biopsy, histopathology, or specialist medical judgment.',
+  },
+  {
+    q: 'How can DermaScope.ai save physician time?',
+    a: 'It can reduce repetitive work by assisting with image review, structured data capture, SOAP note generation, report drafting, follow-up summaries, and coding suggestions — letting physicians spend more time on clinical judgment and patient communication.',
+  },
+  {
+    q: 'Does the platform support ICD and CPT coding?',
+    a: 'Yes. DermaScope.ai is planned to include coding intelligence that suggests possible ICD and CPT options based on documented findings and procedures. Suggestions must always be reviewed and approved by authorized clinical and billing professionals per local regulations.',
+  },
+  {
+    q: 'Can DermaScope.ai help reduce insurance claim rejection?',
+    a: 'It may support cleaner documentation by linking clinical findings, diagnosis, indication, treatment plan, medical necessity, and follow-up evidence. Outcomes depend on payer rules and local regulations.',
+  },
+  {
+    q: 'Can the platform track treatment progress?',
+    a: 'Yes. DermaScope.ai includes longitudinal before/after tracking to compare baseline and follow-up images, monitor response, and generate visual progress reports.',
+  },
+  {
+    q: 'Is DermaScope.ai only for dermatologists?',
+    a: 'No. It is designed for dermatologists, plastic surgeons, aesthetic physicians, regenerative medicine specialists, hair restoration experts, hospitals, clinics, academic institutions, and healthcare organizations dealing with skin-related assessment and documentation.',
+  },
+  {
+    q: 'Will DermaScope.ai integrate with clinic systems?',
+    a: 'The platform is designed with future integration capability for HIS, EMR, CRM, telemedicine, insurance systems, and analytics dashboards, depending on technical scope, regulation, and enterprise requirements.',
+  },
+  {
+    q: 'How does DermaScope.ai handle different skin tones?',
+    a: 'The platform is designed with bias awareness and validation across different skin tones, ethnicities, ages, and lighting conditions. Diversity, image quality, and clinical validation are treated as essential safety priorities.',
+  },
+  {
+    q: 'How can physicians join the early bird program?',
+    a: 'Complete the waiting list form on this page. Early registrants will receive launch updates, potential early access opportunities, preferred subscription benefits, and priority onboarding announcements.',
+  },
+  {
+    q: 'Who can I contact for more information?',
+    a: 'For questions, collaboration, demo requests, or early access inquiries, contact info@Dermascope.ai.',
+  },
+]

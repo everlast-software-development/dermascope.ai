@@ -47,10 +47,6 @@ const STYLES = `
   0% { transform: translate(-50%, -50%) scale(1); opacity: 0.55; }
   100% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
 }
-@keyframes footer-scroll-marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
 @keyframes footer-heartbeat {
   0%, 100% { transform: scale(1); filter: drop-shadow(0 0 5px color-mix(in oklch, var(--destructive) 50%, transparent)); }
   15%, 45% { transform: scale(1.2); filter: drop-shadow(0 0 10px color-mix(in oklch, var(--destructive) 80%, transparent)); }
@@ -58,7 +54,6 @@ const STYLES = `
 }
 
 .animate-footer-breathe { animation: footer-breathe 8s ease-in-out infinite alternate; }
-.animate-footer-scroll-marquee { animation: footer-scroll-marquee 40s linear infinite; }
 .animate-footer-heartbeat { animation: footer-heartbeat 2s cubic-bezier(0.25, 1, 0.5, 1) infinite; }
 
 .footer-bg-grid {
@@ -124,7 +119,6 @@ const STYLES = `
 
 @media (prefers-reduced-motion: reduce) {
   .animate-footer-breathe,
-  .animate-footer-scroll-marquee,
   .animate-footer-heartbeat { animation: none; }
 }
 `
@@ -204,26 +198,6 @@ const MagneticButton = React.forwardRef(function MagneticButton(
 // -------------------------------------------------------------------------
 // Main component
 // -------------------------------------------------------------------------
-const MARQUEE_PHRASES = [
-  'Physician-Supervised AI',
-  '300+ Skin Conditions',
-  'Multi-Angle Imaging',
-  'Explainable AI',
-  'Longitudinal Monitoring',
-  'Standardized Documentation',
-]
-
-const MarqueeItem = () => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 48, padding: '0 24px' }}>
-    {MARQUEE_PHRASES.map((p, i) => (
-      <React.Fragment key={p}>
-        <span>{p}</span>
-        <span style={{ color: i % 2 === 0 ? 'rgba(165,231,248,0.6)' : 'rgba(76,143,136,0.7)' }}>✦</span>
-      </React.Fragment>
-    ))}
-  </div>
-)
-
 const pillLink = {
   borderRadius: 999,
   color: '#F1F8FA',
@@ -316,7 +290,7 @@ export default function CinematicFooter() {
             bottom: 0,
             left: 0,
             display: 'flex',
-            /* start below the sticky header so the marquee isn't tucked under it */
+            /* start below the sticky header */
             height: 'calc(100vh - 60px)',
             width: '100%',
             flexDirection: 'column',
@@ -367,41 +341,6 @@ export default function CinematicFooter() {
             DERMASCOPE
           </div>
 
-          {/* Diagonal marquee */}
-          <div
-            style={{
-              position: 'absolute',
-              top: 64,
-              left: 0,
-              width: '100%',
-              overflow: 'hidden',
-              borderTop: '1px solid rgba(213,230,235,0.16)',
-              borderBottom: '1px solid rgba(213,230,235,0.16)',
-              background: 'rgba(16,48,58,0.6)',
-              backdropFilter: 'blur(10px)',
-              padding: '16px 0',
-              zIndex: 10,
-              transform: 'rotate(-2deg) scale(1.1)',
-              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)',
-            }}
-          >
-            <div
-              className="animate-footer-scroll-marquee"
-              style={{
-                display: 'flex',
-                width: 'max-content',
-                fontSize: 13,
-                fontWeight: 700,
-                letterSpacing: '0.3em',
-                color: 'rgba(213,230,235,0.66)',
-                textTransform: 'uppercase',
-              }}
-            >
-              <MarqueeItem />
-              <MarqueeItem />
-            </div>
-          </div>
-
           {/* Center content */}
           <div
             style={{
@@ -413,7 +352,6 @@ export default function CinematicFooter() {
               alignItems: 'center',
               justifyContent: 'center',
               padding: isMobile ? '0 16px' : '0 24px',
-              marginTop: isMobile ? 56 : isTablet ? 72 : 80,
               width: '100%',
               maxWidth: 1024,
               marginLeft: 'auto',

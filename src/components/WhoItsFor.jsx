@@ -32,12 +32,13 @@ const EASE = [0.22, 0.61, 0.36, 1]
 const NOOP = { hidden: { opacity: 1 }, visible: { opacity: 1 } }
 
 const section = {
-  background: '#FFFFFF',
-  // Subtle branded backdrop: two soft radial washes + a faint medical dot mesh.
+  background: '#21525E',
+  // Dark branded backdrop: two soft accent washes + a faint medical dot mesh in
+  // low-opacity white so the mesh reads on the teal without lifting the value.
   backgroundImage:
-    'radial-gradient(90% 55% at 12% 0%, rgba(165,231,248,0.18), rgba(165,231,248,0) 55%),' +
-    'radial-gradient(80% 60% at 100% 100%, rgba(76,143,136,0.12), rgba(76,143,136,0) 55%),' +
-    'radial-gradient(rgba(40,95,102,0.05) 1px, transparent 1.6px)',
+    'radial-gradient(90% 55% at 12% 0%, rgba(165,231,248,0.14), rgba(165,231,248,0) 55%),' +
+    'radial-gradient(80% 60% at 100% 100%, rgba(23,199,204,0.12), rgba(23,199,204,0) 55%),' +
+    'radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1.6px)',
   backgroundSize: 'auto, auto, 26px 26px',
   scrollMarginTop: 70,
 }
@@ -86,10 +87,10 @@ export default function WhoItsFor() {
     flexShrink: 0,
     borderRadius: 12,
     background: active
-      ? 'rgba(165,231,248,0.18)'
-      : 'linear-gradient(140deg,rgba(165,231,248,0.45),rgba(76,143,136,0.16))',
-    border: `1px solid ${active ? 'rgba(165,231,248,0.4)' : 'rgba(76,143,136,0.18)'}`,
-    color: active ? '#A5E7F8' : '#256E75',
+      ? 'rgba(165,231,248,0.20)'
+      : 'rgba(255,255,255,0.06)',
+    border: `1px solid ${active ? 'rgba(165,231,248,0.45)' : 'rgba(255,255,255,0.12)'}`,
+    color: active ? '#A5E7F8' : '#9CD9E6',
     transition: 'background .3s ease, color .3s ease, border-color .3s ease',
   })
 
@@ -101,12 +102,12 @@ export default function WhoItsFor() {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: teal ? 'rgba(76,143,136,0.14)' : 'rgba(232,182,74,0.15)',
-    color: teal ? '#3E8A82' : '#C4881F',
-    border: `1px solid ${teal ? 'rgba(76,143,136,0.24)' : 'rgba(232,182,74,0.28)'}`,
+    background: teal ? 'rgba(127,216,232,0.16)' : 'rgba(232,182,74,0.18)',
+    color: teal ? '#7FD8C8' : '#E8B64A',
+    border: `1px solid ${teal ? 'rgba(127,216,232,0.30)' : 'rgba(232,182,74,0.36)'}`,
   })
-  const challengeText = { fontSize: 15, lineHeight: 1.4, color: '#5B6C73', fontWeight: 500 }
-  const solutionText = { fontSize: 15, lineHeight: 1.4, color: '#1B4754', fontWeight: 600 }
+  const challengeText = { fontSize: 15, lineHeight: 1.4, color: '#D7E6EA', fontWeight: 500 }
+  const solutionText = { fontSize: 15, lineHeight: 1.4, color: '#FFFFFF', fontWeight: 600 }
 
   const pairStyle = isMobile
     ? { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, padding: '14px 14px', borderRadius: 16 }
@@ -122,7 +123,7 @@ export default function WhoItsFor() {
     >
       <div style={{ maxWidth: 1240, margin: '0 auto' }}>
         <Reveal style={{ maxWidth: 760, marginBottom: isMobile ? 36 : isTablet ? 48 : 60 }}>
-          <SectionSubtitle label="Who Is DermaScope.ai Built For?" tone="light" />
+          <SectionSubtitle label="Who Is DermaScope.ai Built For?" tone="dark" />
           <h2
             style={{
               margin: 0,
@@ -130,7 +131,7 @@ export default function WhoItsFor() {
               lineHeight: 1.12,
               fontWeight: 700,
               letterSpacing: '-0.02em',
-              color: '#1B4754',
+              color: '#FFFFFF',
             }}
           >
             One Intelligent Platform. Multiple Clinical Workflows.
@@ -183,13 +184,13 @@ export default function WhoItsFor() {
                     cursor: 'pointer',
                     borderRadius: 16,
                     padding: '13px 16px',
-                    border: `1px solid ${active ? 'transparent' : 'rgba(27,71,84,0.06)'}`,
-                    background: active ? 'transparent' : 'rgba(255,255,255,0.5)',
+                    border: `1px solid ${active ? 'transparent' : 'rgba(255,255,255,0.10)'}`,
+                    background: active ? 'transparent' : 'rgba(255,255,255,0.05)',
                     backdropFilter: 'blur(8px)',
                     WebkitBackdropFilter: 'blur(8px)',
                     boxShadow: active
-                      ? '0 26px 56px -28px rgba(23,199,204,0.5)'
-                      : '0 8px 26px -22px rgba(16,55,62,0.28)',
+                      ? '0 26px 56px -26px rgba(23,199,204,0.6)'
+                      : '0 8px 26px -22px rgba(0,0,0,0.35)',
                     minWidth: isMobile ? 236 : undefined,
                     flex: isMobile ? '0 0 auto' : undefined,
                     scrollSnapAlign: isMobile ? 'start' : undefined,
@@ -204,8 +205,10 @@ export default function WhoItsFor() {
                         position: 'absolute',
                         inset: 0,
                         borderRadius: 16,
-                        background: 'linear-gradient(135deg,#1B4754,#20525F 60%,#255862)',
-                        boxShadow: 'inset 0 0 0 1px rgba(165,231,248,0.2), 0 0 50px -4px rgba(23,199,204,0.55)',
+                        // Elevated glass — sits slightly lighter than the #21525E bg.
+                        background:
+                          'linear-gradient(135deg, rgba(127,216,232,0.18), rgba(255,255,255,0.07) 55%, rgba(23,199,204,0.12))',
+                        boxShadow: 'inset 0 0 0 1px rgba(165,231,248,0.28), 0 0 50px -4px rgba(23,199,204,0.55)',
                       }}
                     >
                       <motion.span
@@ -231,10 +234,10 @@ export default function WhoItsFor() {
                       <Icon size={19} strokeWidth={1.9} />
                     </span>
                     <span style={{ display: 'grid', gap: 2, minWidth: 0 }}>
-                      <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.2, color: active ? '#FFFFFF' : '#1B4754' }}>
+                      <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.2, color: active ? '#FFFFFF' : '#EAF4F6' }}>
                         {opt.tab}
                       </span>
-                      <span style={{ fontSize: 12, lineHeight: 1.3, color: active ? 'rgba(213,230,235,0.82)' : '#7A8B92' }}>
+                      <span style={{ fontSize: 12, lineHeight: 1.3, color: active ? 'rgba(213,230,235,0.85)' : '#BFD5DB' }}>
                         {subtitle}
                       </span>
                     </span>
@@ -275,7 +278,7 @@ export default function WhoItsFor() {
                 fontSize: isMobile ? 20 : 25,
                 fontWeight: 700,
                 letterSpacing: '-0.015em',
-                color: '#1B4754',
+                color: '#FFFFFF',
               }}
             >
               {p.heading}
@@ -285,9 +288,9 @@ export default function WhoItsFor() {
               {/* Column labels — communicate "Clinical Problem → AI Solution" */}
               {!isMobile && (
                 <div style={{ display: 'grid', gridTemplateColumns: flowCols, alignItems: 'center', padding: '0 14px', marginBottom: 12 }}>
-                  <span style={{ ...labelBase, color: '#B07C1E', paddingLeft: 44 }}>Clinical Challenge</span>
+                  <span style={{ ...labelBase, color: '#E8B64A', paddingLeft: 44 }}>Clinical Challenge</span>
                   <span aria-hidden="true" />
-                  <span style={{ ...labelBase, color: '#3E8A82', paddingLeft: 44 }}>How DermaScope.ai Helps</span>
+                  <span style={{ ...labelBase, color: '#7FD8C8', paddingLeft: 44 }}>How DermaScope.ai Helps</span>
                 </div>
               )}
 
@@ -315,9 +318,9 @@ export default function WhoItsFor() {
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: 32 }}>
                           <motion.span
                             variants={lineV}
-                            style={{ width: 2, height: 20, borderRadius: 2, background: 'linear-gradient(180deg, rgba(232,182,74,0.55), rgba(76,143,136,0.7))', transformOrigin: 'top center' }}
+                            style={{ width: 2, height: 20, borderRadius: 2, background: 'linear-gradient(180deg, rgba(232,182,74,0.6), rgba(127,216,232,0.75))', transformOrigin: 'top center' }}
                           />
-                          <motion.span variants={arrowV} style={{ display: 'flex', color: '#3E8A82' }}>
+                          <motion.span variants={arrowV} style={{ display: 'flex', color: '#7FD8C8' }}>
                             <ArrowDown size={15} strokeWidth={2.4} />
                           </motion.span>
                         </div>
@@ -325,9 +328,9 @@ export default function WhoItsFor() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%' }}>
                           <motion.span
                             variants={lineV}
-                            style={{ flex: 1, height: 2, borderRadius: 2, background: 'linear-gradient(90deg, rgba(232,182,74,0.5), rgba(76,143,136,0.7))', transformOrigin: 'left center' }}
+                            style={{ flex: 1, height: 2, borderRadius: 2, background: 'linear-gradient(90deg, rgba(232,182,74,0.55), rgba(127,216,232,0.75))', transformOrigin: 'left center' }}
                           />
-                          <motion.span variants={arrowV} style={{ display: 'flex', color: '#3E8A82' }}>
+                          <motion.span variants={arrowV} style={{ display: 'flex', color: '#7FD8C8' }}>
                             <ArrowRight size={16} strokeWidth={2.4} />
                           </motion.span>
                         </div>

@@ -14,17 +14,21 @@ const NODES = [
   { id: 3, label: '40°', title: '40° Side View', desc: 'Captures elevation, contours, and surface texture that may not appear in frontal images.', Icon: Box },
 ]
 
-// Fixed design size of the desktop orbit. Card centres sit on a circle of
-// radius R; footprint is (2R + cardW) x cappedHeight. Two clearances are
-// enforced so nothing ever overlaps at any rotation:
+// Fixed design size of the orbit. Card centres sit on a circle of radius R;
+// footprint is (2R + cardW) x VIZ_H. Two clearances are enforced so nothing
+// ever overlaps at any rotation:
 //   • card ↔ core: R − cardW/2 ≥ coreRadius + margin (side position is worst).
-//   • card ↔ card: centre spacing R·√3 ≈ 371px ≫ cardW.
+//   • card ↔ card: centre spacing R·√3 ≫ cardW.
 // The whole thing is then uniformly scaled to fit its column width.
-const R = 214
-const CARD_W = 262
-const CENTER_SIZE = 140
-const VIZ_W = 2 * R + CARD_W // 690
-const VIZ_H = 576
+//
+// Tablet (641–1024px) uses a purpose-built COMPACT geometry — smaller core and
+// cards, a tighter radius, and shorter connectors — so the graphic reads as an
+// intentional iPad composition rather than a shrunk desktop one. Values still
+// satisfy the clearances above (tablet: R−cardW/2 = 190−114 = 76 ≥ 59+17).
+const ORBIT_GEO = {
+  desktop: { R: 214, CARD_W: 262, CENTER_SIZE: 140, VIZ_H: 576 },
+  tablet: { R: 190, CARD_W: 228, CENTER_SIZE: 118, VIZ_H: 556 },
+}
 
 function AngleCard({ n, compact }) {
   return (
@@ -96,10 +100,14 @@ function Core({ size }) {
 }
 
 export default function OrbitalImaging() {
-  const { isMobile } = useResponsive()
+  const { isMobile, isTablet } = useResponsive()
   // Tablet mirrors desktop: it also runs the CSS orbit (which auto-scales to
   // fit its column). Only phones fall back to the stacked, non-orbiting layout.
   const orbit = !isMobile
+
+  // Tablet gets the compact geometry; desktop keeps its original dimensions.
+  const { R, CARD_W, CENTER_SIZE, VIZ_H } = isTablet ? ORBIT_GEO.tablet : ORBIT_GEO.desktop
+  const VIZ_W = 2 * R + CARD_W
 
   // Uniformly scale the fixed-size desktop viz down to fit its column so it can
   // never overflow (ResizeObserver-driven, not per-frame → no jitter).

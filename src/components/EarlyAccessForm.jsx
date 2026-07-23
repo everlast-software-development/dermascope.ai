@@ -66,6 +66,17 @@ const STEP_SUBTITLES = [
 ]
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+// Options for the "Type of Interest" searchable select (Step 3).
+const INTEREST_OPTIONS = [
+  'Individual Physician Subscription',
+  'Clinic Subscription',
+  'Hospital / Enterprise License',
+  'Academic / Research Collaboration',
+  'Investor / Business Partnership',
+  'Insurance / Payer Collaboration',
+  'Other',
+]
+
 // Backend base URL. Empty = same-origin (production single service, and dev via
 // the Vite /api proxy). Override with VITE_API_URL for a split deployment.
 const API_BASE = import.meta.env.VITE_API_URL || ''
@@ -554,6 +565,232 @@ function CountrySearchSelect({
   )
 }
 
+// ── Generic searchable select (plain string options) ───────────────────────────
+// Same modern combobox styling/keyboard behaviour as CountrySearchSelect, minus
+// flags/dial codes. Used for the "Type of Interest" field in Step 3.
+function SearchSelect({
+  id,
+  value, // selected option string
+  onChange, // (option) => void
+  options,
+  placeholder,
+  searchPlaceholder = 'Search…',
+  invalid,
+  ariaLabel,
+  describedBy,
+  respField,
+}) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [active, setActive] = useState(0)
+  const rootRef = useRef(null)
+  const inputRef = useRef(null)
+  const listRef = useRef(null)
+  const listId = `${id}-list`
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return options
+    return options.filter((o) => o.toLowerCase().includes(q))
+  }, [query, options])
+
+  // Close on outside click.
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (e) => {
+      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [open])
+
+  // Focus the search box when the panel opens.
+  useEffect(() => {
+    if (open && inputRef.current) inputRef.current.focus()
+  }, [open])
+
+  // Keep the highlighted option scrolled into view.
+  useEffect(() => {
+    if (!open || !listRef.current) return
+    const el = listRef.current.children[active]
+    if (el) el.scrollIntoView({ block: 'nearest' })
+  }, [active, open])
+
+  const openPanel = () => {
+    setQuery('')
+    const idx = value ? options.indexOf(value) : 0
+    setActive(idx > 0 ? idx : 0)
+    setOpen(true)
+  }
+
+  const pick = (o) => {
+    onChange(o)
+    setOpen(false)
+  }
+
+  const onKeyDown = (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActive((a) => Math.min(filtered.length - 1, a + 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActive((a) => Math.max(0, a - 1))
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (filtered[active]) pick(filtered[active])
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      setOpen(false)
+    }
+  }
+
+  const triggerBase = {
+    ...respField,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 9,
+    textAlign: 'left',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    ...(invalid ? { border: '1px solid #E3A79E' } : null),
+  }
+
+  return (
+    <div ref={rootRef} style={{ position: 'relative' }}>
+      <button
+        type="button"
+        id={id}
+        role="combobox"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-label={ariaLabel}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
+        onClick={() => (open ? setOpen(false) : openPanel())}
+        className="ds-input"
+        style={triggerBase}
+      >
+        {value ? (
+          <span style={{ color: '#2F4148', fontWeight: 500 }}>{value}</span>
+        ) : (
+          <span style={{ color: '#9AA9AF' }}>{placeholder}</span>
+        )}
+        <ChevronDown
+          size={17}
+          strokeWidth={2}
+          style={{
+            marginLeft: 'auto',
+            color: '#7A8B92',
+            flexShrink: 0,
+            transition: 'transform .2s',
+            transform: open ? 'rotate(180deg)' : 'none',
+          }}
+        />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+            style={{
+              position: 'absolute',
+              top: 'calc(100% + 6px)',
+              left: 0,
+              zIndex: 60,
+              width: '100%',
+              background: '#FFFFFF',
+              border: '1px solid #DCECEF',
+              borderRadius: 14,
+              boxShadow: '0 18px 44px -14px rgba(27,71,84,0.28)',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ position: 'relative', padding: 8, borderBottom: '1px solid #EEF5F7' }}>
+              <Search
+                size={16}
+                strokeWidth={2}
+                style={{
+                  position: 'absolute',
+                  left: 18,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: '#9AA9AF',
+                  pointerEvents: 'none',
+                }}
+              />
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value)
+                  setActive(0)
+                }}
+                onKeyDown={onKeyDown}
+                placeholder={searchPlaceholder}
+                aria-label={searchPlaceholder}
+                aria-autocomplete="list"
+                aria-controls={listId}
+                className="ds-input"
+                style={{ ...field, padding: '10px 12px 10px 34px', fontSize: 14.5 }}
+              />
+            </div>
+            <ul
+              ref={listRef}
+              id={listId}
+              role="listbox"
+              style={{
+                listStyle: 'none',
+                margin: 0,
+                padding: 6,
+                maxHeight: 236,
+                overflowY: 'auto',
+              }}
+            >
+              {filtered.length === 0 && (
+                <li style={{ padding: '12px 14px', color: '#9AA9AF', fontSize: 14 }}>
+                  No matches found
+                </li>
+              )}
+              {filtered.map((o, i) => {
+                const isSel = value === o
+                const isActive = i === active
+                return (
+                  <li
+                    key={o}
+                    role="option"
+                    aria-selected={isSel || false}
+                    onMouseEnter={() => setActive(i)}
+                    onClick={() => pick(o)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '9px 12px',
+                      borderRadius: 9,
+                      cursor: 'pointer',
+                      background: isActive ? '#F0FAFD' : 'transparent',
+                      color: '#2F4148',
+                      fontSize: 14.5,
+                    }}
+                  >
+                    <span style={{ flex: 1, fontWeight: isSel ? 600 : 400 }}>{o}</span>
+                    {isSel && <Check size={15} strokeWidth={2.5} style={{ color: '#4C8F88' }} />}
+                  </li>
+                )
+              })}
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 // ── Phone field — react-international-phone engine + searchable selector ────────
 // The country selector and the number input are two visually distinct fields
 // (separate rounded boxes with a gap). The library handles dial-code prefill,
@@ -658,7 +895,7 @@ export default function EarlyAccessForm({ onSuccess }) {
       const national = digits.slice((form.phoneDial || '').length)
       if (national.length < 4) e.phone = 'Please enter a valid phone number.'
     } else if (s === 2) {
-      if (!form.interest.trim()) e.interest = 'Please enter your type of interest.'
+      if (!form.interest.trim()) e.interest = 'Please select your type of interest.'
       if (!form.consent) e.consent = 'Please confirm your consent to continue.'
     }
     return e
@@ -965,15 +1202,24 @@ export default function EarlyAccessForm({ onSuccess }) {
           {/* ── Step 3 — Practice Information ───────────────────────────── */}
           {step === 2 && (
             <div style={{ display: 'grid', gap: 18 }}>
-              <TextField
-                id="interest"
-                fid={fid}
-                labelText="Type of Interest"
-                value={form.interest}
-                onChange={setField}
-                errors={errors}
-                respField={respField}
-              />
+              <div>
+                <FieldLabel htmlFor={fid('interest')} required>
+                  Type of Interest
+                </FieldLabel>
+                <SearchSelect
+                  id={fid('interest')}
+                  value={form.interest}
+                  onChange={(v) => setField('interest', v)}
+                  options={INTEREST_OPTIONS}
+                  placeholder="Select..."
+                  searchPlaceholder="Search type of interest…"
+                  invalid={!!errors.interest}
+                  ariaLabel="Type of Interest"
+                  describedBy={errors.interest ? fid('interest-err') : undefined}
+                  respField={respField}
+                />
+                <ErrorText id={fid('interest-err')}>{errors.interest}</ErrorText>
+              </div>
 
               <div>
                 <FieldLabel htmlFor={fid('physicians')} optional>

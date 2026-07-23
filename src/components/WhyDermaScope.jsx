@@ -362,16 +362,23 @@ export default function WhyDermaScope() {
         <Reveal
           style={{
             display: 'grid',
-            // Tablet mirrors desktop's two-column layout; only phones stack.
-            gridTemplateColumns: isMobile ? '1fr' : '0.66fr 1fr',
-            gap: rowGap,
+            // Desktop: ~40/60 text↔viz. Tablet: widen the text to ~44% (0.8fr) so
+            // the heading wraps to a clean 2–3 lines and the description reads
+            // comfortably, with the compact orbital in the ~56% column. Only
+            // phones stack.
+            gridTemplateColumns: isMobile ? '1fr' : isTablet ? '0.8fr 1fr' : '0.66fr 1fr',
+            // Tighter gap on tablet trims the dead space between text and viz.
+            gap: isTablet ? 30 : rowGap,
             alignItems: 'center',
             marginBottom: rowMb,
           }}
         >
           <div>
             <div style={numberStyle}>01</div>
-            <h3 style={h3Style}>Multi-Angle Clinical Imaging</h3>
+            {/* Balance wrapping on tablet so the title settles into 2–3 even lines. */}
+            <h3 style={{ ...h3Style, ...(isTablet ? { textWrap: 'balance' } : null) }}>
+              Multi-Angle Clinical Imaging
+            </h3>
             <p style={{ margin: '0 0 14px', ...bodyStyle }}>
               Capture 3 standardized images from 90°, 75°, and 40° to provide a more complete clinical
               view of the affected area.
