@@ -135,6 +135,9 @@ export default function VideoModal({
                 ref={videoRef}
                 src={src}
                 controls
+                controlsList="nodownload"
+                disablePictureInPicture
+                onContextMenu={(e) => e.preventDefault()}
                 autoPlay
                 playsInline
                 preload="metadata"
