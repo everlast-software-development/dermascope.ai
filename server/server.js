@@ -47,6 +47,71 @@ transporter.verify((err) => {
   else console.log('  ✓  SMTP connected and ready');
 });
 
+// ─── Google Sheets (Apps Script Web App) integration ────────────────────────────
+// Best-effort mirror of every submission into a Google Sheet, via a deployed
+// Google Apps Script Web App (see /google-apps-script for the script + a
+// step-by-step deploy guide). This NEVER blocks or fails the request: email is
+// the source of truth, so any Sheets error is logged and swallowed. Configure by
+// setting GOOGLE_SHEETS_WEBAPP_URL (and, optionally, GOOGLE_SHEETS_SECRET) in the
+// server environment. When the URL is absent, the append is simply skipped.
+const SHEETS_WEBAPP_URL    = process.env.GOOGLE_SHEETS_WEBAPP_URL || '';
+const SHEETS_SHARED_SECRET = process.env.GOOGLE_SHEETS_SECRET || '';
+
+async function appendToGoogleSheet(payload, timestampIso) {
+  if (!SHEETS_WEBAPP_URL) {
+    console.log('  ℹ  GOOGLE_SHEETS_WEBAPP_URL not set — skipping Google Sheets append');
+    return;
+  }
+
+  // Guard against a slow/hanging endpoint delaying the user's response.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const res = await fetch(SHEETS_WEBAPP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      redirect: 'follow', // Apps Script Web Apps answer via a 302 to script.googleusercontent.com
+      signal: controller.signal,
+      body: JSON.stringify({
+        token:        SHEETS_SHARED_SECRET,
+        timestamp:    timestampIso,
+        name:         payload.name ?? '',
+        title:        payload.title ?? '',
+        specialty:    payload.specialty ?? '',
+        organization: payload.organization ?? '',
+        country:      payload.country ?? '',
+        city:         payload.city ?? '',
+        email:        payload.email ?? '',
+        phone:        payload.phone ?? '',
+        interest:     payload.interest ?? '',
+        physicians:   payload.physicians ?? '',
+        emr:          payload.emr ?? '',
+        challenges:   Array.isArray(payload.challenges)
+                        ? payload.challenges.join(', ')
+                        : (payload.challenges ?? ''),
+        consent:      isConsented(payload.consent) ? 'Yes' : 'No',
+      }),
+    });
+
+    if (!res.ok) {
+      console.error(`Google Sheets append failed: HTTP ${res.status}`);
+      return;
+    }
+    const data = await res.json().catch(() => ({}));
+    if (data.result !== 'success') {
+      console.error('Google Sheets append returned an unexpected response:', JSON.stringify(data));
+    } else {
+      console.log('  ✓  Submission appended to Google Sheet');
+    }
+  } catch (err) {
+    const reason = err.name === 'AbortError' ? 'request timed out' : err.message;
+    console.error('Google Sheets append error:', reason);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 // ─── Shared email design system ───────────────────────────────────────────────
 // Brand font stack: Outfit (brand) with robust, email-safe system fallbacks.
 const FONT = "'Outfit','Segoe UI',Roboto,Helvetica,Arial,sans-serif";
@@ -385,6 +450,11 @@ AI outputs are intended to support—not replace—clinical judgment. Every fina
   } catch (err) {
     console.error('Confirmation email error:', err.message);
   }
+
+  // Mirror the submission into Google Sheets — best-effort, fully guarded, and
+  // never able to fail the request (see appendToGoogleSheet above). Runs after
+  // the emails so a Sheets outage can never delay or break the email workflow.
+  await appendToGoogleSheet(req.body || {}, now.toISOString());
 
   return res.status(200).json({ success: true, message: 'Email sent successfully.' });
 });
