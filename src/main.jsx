@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import App from './App.jsx'
 import PrivacyPolicy from './pages/PrivacyPolicy.jsx'
 import DeleteAccount from './pages/DeleteAccount.jsx'
+import ScrollToTopButton from './components/ScrollToTopButton.jsx'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -14,6 +15,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/delete-account" element={<DeleteAccount />} />
       </Routes>
+      {/* Outside <Routes> so the one instance rides above every page. */}
+      <ScrollToTopButton />
     </BrowserRouter>
   </React.StrictMode>,
 )
