@@ -304,6 +304,8 @@ export default function CinematicFooter() {
     return () => ctx.revert()
   }, [])
 
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
@@ -511,9 +513,25 @@ export default function CinematicFooter() {
               <span style={{ color: '#F1F8FA', fontWeight: 900, fontSize: 12.5, marginLeft: 4 }}>Human Studio Labs</span>
             </div>
 
-            {/* The back-to-top control used to sit here. It now lives in
-                <ScrollToTopButton /> (mounted in main.jsx) as a site-wide
-                floating action button. */}
+            <MagneticButton
+              as="button"
+              onClick={scrollToTop}
+              aria-label="Back to top"
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 999,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'rgba(213,230,235,0.66)',
+                border: 'none',
+              }}
+            >
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+              </svg>
+            </MagneticButton>
           </div>
         </footer>
       </div>
