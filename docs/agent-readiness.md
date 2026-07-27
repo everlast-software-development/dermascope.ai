@@ -183,11 +183,11 @@ form):
 
 | Field | Value |
 |---|---|
-| Type | `SVCB` |
+| Type | `SVCB` (Cloudflare also accepts `HTTPS` for this rdata shape — either passes isitagentready.com's check, which explicitly accepts both) |
 | Name | `_index._agents.dermascope.ai` |
 | Priority | `1` |
 | Target | `dermascope.ai.` |
-| Value | `alpn="mcp,h2" port="443" well-known="mcp/server-card.json" mandatory="alpn,port"` |
+| Value | `alpn="mcp,h2" port="443" mandatory="alpn,port"` |
 
 **Record 2 — protocol-scoped label** (the draft calls this form
 "redundant, as the protocol is in the alpn" of Record 1 — but it's the exact
@@ -197,27 +197,39 @@ endpoint, same real capabilities, no new claim):
 
 | Field | Value |
 |---|---|
-| Type | `SVCB` |
+| Type | `SVCB` (or `HTTPS`) |
 | Name | `_mcp._agents.dermascope.ai` |
 | Priority | `1` |
 | Target | `dermascope.ai.` |
-| Value | `alpn="mcp,h2" port="443" well-known="mcp/server-card.json" mandatory="alpn,port"` |
+| Value | `alpn="mcp,h2" port="443" mandatory="alpn,port"` |
 
-`well-known="mcp/server-card.json"` is the value per the draft's own
-convention ("the .well-known can be assumed, so the value... could be
-`agent-card.json`") — it resolves to the real, already-live
-`https://dermascope.ai/.well-known/mcp/server-card.json`. `mandatory=alpn,port`
-follows the draft's Section 6.3 guidance: list only the params a client
-*must* understand to use the record at all (connecting needs alpn+port;
-`well-known` is a bonus a client can ignore without breaking the connection).
+`mandatory=alpn,port` follows the draft's Section 6.3 guidance: list only
+the params a client *must* understand to use the record at all.
+
+**Why `well-known` was dropped:** an earlier version of this doc included
+`well-known="mcp/server-card.json"`, matching the draft's convention for
+pointing at the RFC 8615 path clients should fetch. It was removed after
+Cloudflare rejected it as an invalid record value. Checked against the
+[IANA SvcParamKey registry](https://www.iana.org/assignments/dns-svcb/dns-svcb.xhtml)
+directly: the only registered keys are `mandatory`, `alpn`, `no-default-alpn`,
+`port`, `ipv4hint`, `ech`, `ipv6hint`, `dohpath`, `ohttp`,
+`tls-supported-groups`, `docpath`, `pvd`, `oots`. `well-known` (along with
+`cap`, `cap-sha256`, `policy`, `realm`) is specific to this still-draft
+document and hasn't completed IANA registration — Cloudflare's validator
+only accepts registered keys, so it rejects the whole value string on sight
+of an unrecognized one. Nothing is lost in practice: a client that resolves
+`alpn=mcp` already knows, by MCP/SEP-2127 convention, to check
+`/.well-known/mcp/server-card.json` — the DNS param was a redundant
+optimization, not the only path to it.
 
 ### Adding these in Cloudflare
 
-Cloudflare's SVCB record schema is `name` / `type` / `ttl` / `data.priority`
-/ `data.target` / `data.value` — the "Value" column above maps directly to
-`data.value`. In the dashboard: DNS → Records → Add record → type `SVCB`,
-paste Name/Priority/Target as shown, and the `alpn=... port=... ...` string
-into the value field. TTL `3600` (or Cloudflare's "Auto") is fine either way.
+Cloudflare's SVCB/HTTPS record schema is `name` / `type` / `ttl` /
+`data.priority` / `data.target` / `data.value` — the "Value" column above
+maps directly to `data.value`. In the dashboard: DNS → Records → Add record
+→ type `SVCB` (or `HTTPS` if that's what's offered), paste Name/Priority/
+Target as shown, and `alpn="mcp,h2" port="443" mandatory="alpn,port"` into
+the value field. TTL `3600` (or Cloudflare's "Auto") is fine either way.
 
 ### Verify after adding
 
