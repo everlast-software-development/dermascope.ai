@@ -1,13 +1,13 @@
 # Agent-readiness — what was implemented, and what wasn't
 
 This documents the response to an "isitagentready.com"-style audit covering
-14 checks. Most are genuinely useful for a public marketing site. Three
-(OAuth/OIDC discovery, protected-resource metadata, and `auth.md`
-agent-registration) initially had nothing real to describe, so a real
-protected admin API — and a real, if deliberately narrow, agent-registration
-flow — was built to back them instead of publishing fake metadata — see
-below. One more (MCP Server Card) still describes infrastructure
-DermaScope.ai doesn't have and remains intentionally **not** faked.
+14 checks. Most are genuinely useful for a public marketing site. Four
+(OAuth/OIDC discovery, protected-resource metadata, `auth.md`
+agent-registration, and the MCP Server Card) initially had nothing real to
+describe, so real infrastructure was built to back each one instead of
+publishing fake metadata — see below. The one item that genuinely can't be
+done from this repo (DNS-AID) is documented separately, with what to paste
+where.
 
 ## Implemented
 
@@ -31,6 +31,9 @@ DermaScope.ai doesn't have and remains intentionally **not** faked.
 | `auth.md` agent-registration metadata | [`public/auth.md`](../public/auth.md) |
 | `agent_auth` block (RFC 7591-flavored `service_auth` registration) | `server.js` → `POST /agent/identity`, referenced from `GET /.well-known/oauth-authorization-server` |
 | Token revocation (RFC 7009) | `server.js` → `POST /oauth/revoke` |
+| Real MCP server (Streamable HTTP, 2 tools) | `server.js` → `POST /mcp` — see [`docs/mcp-server.md`](./mcp-server.md) |
+| MCP Server Card (SEP-2127) | `server.js` → `GET /.well-known/mcp/server-card.json`, `GET /mcp/server-card` |
+| AI Catalog (domain-level discovery, points at the card) | `server.js` → `GET /.well-known/ai-catalog.json` |
 
 All of the above describe **real** things: the real `/api/contact` and
 `/health` endpoints, and the real Early Access form action. Nothing here
@@ -72,45 +75,73 @@ that doesn't exist either. Rather than stub those out non-functionally, the
 and `/auth.md` says so explicitly — the same "advertise only what's real"
 principle applied throughout this doc.
 
-## Still intentionally skipped
+## MCP Server Card — built the server, not just the card
 
-MCP Server Card (`/.well-known/mcp/server-card.json`) — DermaScope.ai runs no
-MCP transport. Publishing this would mean inventing an MCP server that
-doesn't exist.
+Publishing `/.well-known/mcp/server-card.json` on its own would have been
+exactly the mistake this doc keeps warning against: a document claiming an
+MCP transport exists at a URL that, until this point, didn't answer JSON-RPC
+at all. So the actual server got built first — a real `POST /mcp` endpoint
+(Streamable HTTP, single-response JSON, no session/SSE since none of that is
+required for a stateless 2-tool server) — and the card was generated to
+match it, using the *actual* SEP-2127 schema (fetched from the reference
+[`experimental-ext-server-card`](https://github.com/modelcontextprotocol/experimental-ext-server-card)
+repo, not guessed from the audit's paraphrase — notably, the real schema has
+no `serverInfo`/`transport`/`capabilities` fields at the top level the way
+the audit's "Fix" text implied; those belong to the live `initialize`
+response, not the static card). Full writeup:
+[`docs/mcp-server.md`](./mcp-server.md).
 
-**If that changes** (e.g. you stand up an actual MCP server), implementing
-the matching discovery document at that point is straightforward — ask again
-once the underlying infrastructure exists.
+## A note on stale findings
+
+One of the re-raised checks — `auth.md exists but agent_auth metadata was
+not found` — was already fixed and deployed before this check ran again.
+Live verification (`curl https://dermascope.ai/.well-known/oauth-authorization-server`)
+confirms the `agent_auth` block is present and correct. If an audit tool
+flags something that's demonstrably live, treat it as a caching/timing
+false-negative rather than assuming more work is needed — verify against the
+real site before re-implementing anything.
 
 ## DNS for AI Discovery (DNS-AID) — action required outside this repo
 
 DNS-AID publishes discovery records under your domain's DNS zone. This
 **cannot be done from the codebase** — it requires access to whichever
 service manages `dermascope.ai`'s DNS (e.g. Cloudflare, GoDaddy, Namecheap,
-Route 53). No such records were published; here's what to add if you want
-this:
+Route 53). No such records were published. The record syntax below was
+corrected against the actual draft
+(`draft-mozleywilliams-dnsop-dnsaid`, fetched directly rather than
+recalled from memory) — an earlier version of this doc had the label order
+backwards (`_agents._index` instead of `_index._agents`) and invented an
+`endpoint` SvcParam that isn't part of the spec. Real SvcParams are `alpn`,
+`well-known`, `cap`/`cap-sha256`, `policy`, `realm`.
 
-1. In your DNS provider's dashboard, add an `SVCB` (or `HTTPS`) record:
-   - **Name:** `_agents._index.dermascope.ai` (or a specific protocol name,
-     e.g. `_a2a._agents.dermascope.ai` for an A2A endpoint)
-   - **Priority:** `1`
-   - **Target:** `.` (ServiceMode — no separate target host)
-   - **Params:** `alpn="h2"` and an `endpoint` param pointing at the actual
-     discovery URL, e.g. `endpoint="https://dermascope.ai/.well-known/agent-skills/index.json"`
+1. In your DNS provider's dashboard, add an `SVCB` record:
+   - **Name:** `_index._agents.dermascope.ai` — this is the spec's fixed
+     entry-point label (chosen for eventual IANA registration), not a
+     placeholder to swap out.
+   - **Priority:** `1` (ServiceMode)
+   - **Target:** `.` (this domain — no separate host)
+   - **Params:** `alpn` names the protocol(s) this domain offers (e.g. `mcp`
+     for the MCP server this repo now has, or `a2a` if you add an A2A agent
+     later); `well-known` names the RFC 8615 path clients should fetch
+     relative to `/.well-known/` on this domain.
 
-   Example zone-file syntax:
+   Example zone-file syntax, pointing at the real MCP Server Card this repo
+   now serves:
    ```
-   _agents._index.dermascope.ai. 3600 IN SVCB 1 . alpn="h2" endpoint="https://dermascope.ai/.well-known/agent-skills/index.json"
+   _index._agents.dermascope.ai. 3600 IN SVCB 1 . alpn="mcp" well-known="mcp/server-card.json"
    ```
+   Multi-protocol domains need one record per protocol (distinct `alpn`
+   values), not a comma-separated list in one record.
 
 2. Confirm DNSSEC is enabled on the zone (most registrars have a one-click
    toggle) so resolvers can validate the record hasn't been tampered with.
 
-3. Verify with `dig`:
+3. Verify with `dig` (note: many resolvers need `TYPE64` if they don't
+   recognize the `SVCB` mnemonic yet):
    ```
-   dig SVCB _agents._index.dermascope.ai
+   dig SVCB _index._agents.dermascope.ai
+   dig TYPE64 _index._agents.dermascope.ai
    ```
 
-This is still an early/draft spec
-(`draft-mozleywilliams-dnsop-dnsaid`) — worth revisiting once it stabilizes
-before investing further.
+This is still an early/draft spec — worth revisiting once it stabilizes
+before investing further than the one entry-point record above.

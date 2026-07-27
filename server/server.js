@@ -22,15 +22,17 @@ const app  = express();
 const PORT = process.env.PORT || 5000;
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
+const ALLOWED_ORIGINS = [
+  'http://localhost:5173',  // Vite dev server
+  'http://localhost:4173',  // Vite preview
+  'https://dermascope.ai',
+  'https://www.dermascope.ai',
+];
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false })); // OAuth token requests use form-encoded bodies (RFC 6749 §4.4.2)
 app.use(cors({
-  origin: [
-    'http://localhost:5173',  // Vite dev server
-    'http://localhost:4173',  // Vite preview
-    'https://dermascope.ai',
-    'https://www.dermascope.ai',
-  ],
+  origin: ALLOWED_ORIGINS,
   methods: ['POST'],
 }));
 
@@ -465,6 +467,196 @@ function requireAdminAuth(req, res, next) {
 app.get('/api/admin/submissions', requireAdminAuth, (_req, res) => {
   const submissions = readSubmissions();
   res.json({ count: submissions.length, submissions });
+});
+
+// ─── MCP server (Streamable HTTP transport, minimal profile) ────────────────────
+// A real, working MCP server — not just a card pointing at nothing. Exposes the
+// site's two real actions as MCP tools:
+//   · submit_early_access_request — no auth (mirrors the public /api/contact form)
+//   · list_early_access_submissions — requires a bearer_token argument, obtained
+//     the same way any other admin caller gets one (see /auth.md, docs/oauth-admin-api.md)
+// Both tool handlers forward to the existing, already-validated/authorized HTTP
+// routes above via a local loopback call, so there is exactly one implementation
+// of "submit a request" and "list submissions" — the MCP surface never
+// duplicates that logic.
+//
+// Deliberately minimal: single-response JSON per POST (no SSE stream, no
+// Mcp-Session-Id) — both are optional per the Streamable HTTP spec for a
+// stateless server like this one. GET on the endpoint returns 405, which the
+// spec explicitly allows for servers that don't offer a server-initiated stream.
+const MCP_ENDPOINT = `${ISSUER}/mcp`;
+const MCP_PROTOCOL_VERSIONS = ['2025-06-18', '2025-03-26'];
+const MCP_SERVER_INFO = { name: 'dermascope-early-access', version: '1.0.0' };
+
+const MCP_TOOLS = [
+  {
+    name: 'submit_early_access_request',
+    description: 'Submit a DermaScope.ai Early Access request (clinician sign-up form).',
+    inputSchema: {
+      type: 'object',
+      required: ['name', 'email', 'title', 'specialty', 'organization', 'country', 'city', 'phone', 'interest', 'consent'],
+      properties: {
+        name:         { type: 'string', minLength: 2, description: 'Full name' },
+        email:        { type: 'string', format: 'email' },
+        title:        { type: 'string', description: 'Professional title' },
+        specialty:    { type: 'string', description: 'Clinical specialty' },
+        organization: { type: 'string', description: 'Clinic / hospital / organization' },
+        country:      { type: 'string' },
+        city:         { type: 'string' },
+        phone:        { type: 'string', description: 'Mobile / WhatsApp number' },
+        interest:     { type: 'string', description: 'Type of interest' },
+        physicians:   { type: 'string', description: 'Physicians in organization (optional)' },
+        emr:          { type: 'string', description: 'Current EMR / HIS (optional)' },
+        challenges:   { type: 'array', items: { type: 'string' }, description: 'Main challenges to solve (optional)' },
+        consent:      { type: 'boolean', description: 'Must be true — consent to be contacted' },
+      },
+    },
+    handler: async (args) => {
+      const res = await fetch(`http://127.0.0.1:${PORT}/api/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(args || {}),
+      });
+      return { status: res.status, body: await res.json().catch(() => ({})) };
+    },
+  },
+  {
+    name: 'list_early_access_submissions',
+    description:
+      'List Early Access submissions (admin). Requires a bearer_token — obtain one via POST /oauth/token first; see /auth.md.',
+    inputSchema: {
+      type: 'object',
+      required: ['bearer_token'],
+      properties: {
+        bearer_token: { type: 'string', description: 'Access token from POST /oauth/token (admin:submissions:read scope).' },
+      },
+    },
+    handler: async (args) => {
+      const res = await fetch(`http://127.0.0.1:${PORT}/api/admin/submissions`, {
+        headers: { Authorization: `Bearer ${(args && args.bearer_token) || ''}` },
+      });
+      return { status: res.status, body: await res.json().catch(() => ({})) };
+    },
+  },
+];
+
+function jsonRpcError(id, code, message) {
+  return { jsonrpc: '2.0', id, error: { code, message } };
+}
+
+app.get('/mcp', (_req, res) => {
+  // No server-initiated stream offered — 405 is spec-compliant (Streamable HTTP §Listening).
+  res.status(405).json({ error: 'method_not_allowed', error_description: 'This server does not offer a server-initiated SSE stream.' });
+});
+
+app.post('/mcp', async (req, res) => {
+  // Origin check (DNS-rebinding guard) — browsers set this; non-browser MCP
+  // clients (the expected caller here) generally don't, so absence is fine.
+  const origin = req.headers.origin;
+  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+    return res.status(403).json({ error: 'forbidden_origin' });
+  }
+
+  const version = req.headers['mcp-protocol-version'];
+  if (version && !MCP_PROTOCOL_VERSIONS.includes(version)) {
+    return res.status(400).json({ error: 'unsupported_protocol_version', supported: MCP_PROTOCOL_VERSIONS });
+  }
+
+  const msg = req.body;
+  if (!msg || typeof msg !== 'object' || msg.jsonrpc !== '2.0') {
+    return res.status(400).json(jsonRpcError(null, -32600, 'Invalid Request'));
+  }
+
+  // Notifications/responses (no `id`) — per spec, accept with 202 and no body.
+  if (msg.id === undefined) {
+    return res.status(202).end();
+  }
+
+  try {
+    switch (msg.method) {
+      case 'initialize':
+        return res.type('application/json').json({
+          jsonrpc: '2.0',
+          id: msg.id,
+          result: {
+            protocolVersion: MCP_PROTOCOL_VERSIONS[0],
+            capabilities: { tools: {} },
+            serverInfo: MCP_SERVER_INFO,
+            instructions: 'Two tools: submit_early_access_request (public) and list_early_access_submissions (needs a bearer_token — see /auth.md).',
+          },
+        });
+
+      case 'tools/list':
+        return res.type('application/json').json({
+          jsonrpc: '2.0',
+          id: msg.id,
+          result: { tools: MCP_TOOLS.map(({ name, description, inputSchema }) => ({ name, description, inputSchema })) },
+        });
+
+      case 'tools/call': {
+        const tool = MCP_TOOLS.find((t) => t.name === msg.params?.name);
+        if (!tool) return res.type('application/json').json(jsonRpcError(msg.id, -32602, `Unknown tool: ${msg.params?.name}`));
+
+        const outcome = await tool.handler(msg.params?.arguments || {});
+        return res.type('application/json').json({
+          jsonrpc: '2.0',
+          id: msg.id,
+          result: {
+            content: [{ type: 'text', text: JSON.stringify(outcome.body) }],
+            isError: outcome.status >= 400,
+          },
+        });
+      }
+
+      default:
+        return res.type('application/json').json(jsonRpcError(msg.id, -32601, `Method not found: ${msg.method}`));
+    }
+  } catch (err) {
+    console.error('MCP request error:', err.message);
+    return res.type('application/json').json(jsonRpcError(msg.id, -32603, 'Internal error'));
+  }
+});
+
+// ─── MCP Server Card (SEP-2127) ──────────────────────────────────────────────
+// Schema: https://github.com/modelcontextprotocol/experimental-ext-server-card
+// (the SEP-2127 reference implementation) — fetched and matched field-for-field
+// rather than guessed. Deliberately excludes tool/capability lists: the SEP
+// explicitly reserves those for runtime `tools/list`, since a static card can't
+// reliably represent a dynamic surface (see the SEP's "Why Exclude Primitives?").
+const MCP_SERVER_CARD = {
+  $schema: 'https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json',
+  name: 'ai.dermascope/early-access',
+  title: 'DermaScope.ai Agent API',
+  description: 'MCP tools for DermaScope.ai: submit an Early Access request, or (admin) list submissions.',
+  version: MCP_SERVER_INFO.version,
+  websiteUrl: ISSUER,
+  remotes: [
+    {
+      type: 'streamable-http',
+      url: MCP_ENDPOINT,
+      supportedProtocolVersions: MCP_PROTOCOL_VERSIONS,
+    },
+  ],
+};
+
+// Published at the SEP's recommended per-endpoint path...
+app.get('/mcp/server-card', (_req, res) => res.type('application/json').json(MCP_SERVER_CARD));
+// ...and at the domain well-known path some discovery tooling checks instead.
+app.get('/.well-known/mcp/server-card.json', (_req, res) => res.type('application/json').json(MCP_SERVER_CARD));
+
+// Domain-level AI Catalog (per the Server Card spec's discovery mechanism),
+// pointing at the one Server Card this domain publishes.
+app.get('/.well-known/ai-catalog.json', (_req, res) => {
+  res.type('application/ai-catalog+json').json({
+    specVersion: '1.0',
+    entries: [
+      {
+        identifier: 'urn:air:dermascope.ai:mcp:early-access',
+        type: 'application/mcp-server-card+json',
+        url: `${ISSUER}/mcp/server-card`,
+      },
+    ],
+  });
 });
 
 // ─── Shared email design system ───────────────────────────────────────────────
