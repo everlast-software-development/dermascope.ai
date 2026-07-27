@@ -4,8 +4,9 @@ info:
   description: >
     The public-facing API behind the DermaScope.ai Early Access form, plus a
     small OAuth-protected admin API for reading submitted requests. There is
-    no broader public API surface today.
-  version: "1.1.0"
+    no broader public API surface today. See /auth.md for the agent-facing
+    authentication walkthrough.
+  version: "1.2.0"
   contact:
     url: https://dermascope.ai
 servers:
@@ -104,6 +105,64 @@ paths:
           description: Unsupported or missing grant_type.
         '401':
           description: Invalid client credentials.
+  /agent/identity:
+    post:
+      operationId: registerAgentIdentity
+      summary: Self-register a service_auth client (auth.md "Register" step)
+      description: >
+        Requires an initial access token from DermaScope.ai's operator
+        (Authorization: Bearer <token>) — there is no open self-service
+        signup. Only identity_type "service_auth" is supported. See /auth.md.
+      security:
+        - registrationBearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identity_type]
+              properties:
+                identity_type: { type: string, enum: [service_auth] }
+                client_name:   { type: string }
+      responses:
+        '201':
+          description: Client registered.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  identity_type:  { type: string, example: "service_auth" }
+                  client_id:      { type: string }
+                  client_secret:  { type: string, description: "Shown once — cannot be retrieved again." }
+                  scopes:         { type: array, items: { type: string } }
+        '400':
+          description: Unsupported identity_type.
+        '401':
+          description: Missing or invalid initial access token.
+  /oauth/revoke:
+    post:
+      operationId: revokeAdminToken
+      summary: Revoke an access token (RFC 7009)
+      description: >
+        The client revoking the token must re-present the same credentials
+        that obtained it. Always responds 200, per RFC 7009 §2.2, whether or
+        not the token was found/valid.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:         { type: string }
+                client_id:     { type: string }
+                client_secret: { type: string }
+      responses:
+        '200':
+          description: Always returned.
   /api/admin/submissions:
     get:
       operationId: listEarlyAccessSubmissions
@@ -141,6 +200,13 @@ components:
         RS256 JWT issued by POST /oauth/token. Must carry the
         admin:submissions:read scope. Verify against
         /.well-known/jwks.json.
+    registrationBearerAuth:
+      type: http
+      scheme: bearer
+      description: >
+        The operator's "initial access token" (OAUTH_REGISTRATION_TOKEN) —
+        distinct from any admin access token. Given out-of-band to a
+        specific trusted agent/service; not obtainable via any API call.
   schemas:
     EarlyAccessRequest:
       type: object

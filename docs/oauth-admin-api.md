@@ -95,14 +95,50 @@ Without a token, or with an expired/invalid one, you get `401` with a
   wire up a full database. If you need this to survive redeploys, either
   attach a persistent volume at that path, or swap `readSubmissions()` /
   `appendSubmissionRecord()` in `server.js` for a real datastore.
-- **One client only.** There's a single `OAUTH_ADMIN_CLIENT_ID` /
-  `OAUTH_ADMIN_CLIENT_SECRET` pair. If you need multiple distinct callers with
-  different scopes, extend the client lookup in `POST /oauth/token` to check
-  against a small list/map instead of one pair.
+- **Two ways to get a client**: the one static `OAUTH_ADMIN_CLIENT_ID` /
+  `OAUTH_ADMIN_CLIENT_SECRET` pair above, or dynamic self-registration (below)
+  for additional callers — both work interchangeably with `POST /oauth/token`.
 
-## Rotating the client secret
+## Rotating the static client secret
 
 Generate a new one (see step 1), update the environment variable, and
 restart. Any tokens already issued keep working until they expire (≤1h) —
 old and new secrets aren't both valid at once, so time this during a low-
 traffic window if that matters to you.
+
+## Letting other agents/tools self-register (auth.md)
+
+If you want to hand out access without sharing your one static secret with
+every caller, set an "initial access token" and let callers self-register a
+client of their own:
+
+```env
+OAUTH_REGISTRATION_TOKEN=<generate a long random secret — same command as above>
+```
+
+Give that value out-of-band (not over an insecure channel) to whichever
+agent/service you're authorizing. They then follow the flow documented in
+[`/auth.md`](../public/auth.md) — the agent-facing version of this guide:
+
+```bash
+curl -s -X POST https://dermascope.ai/agent/identity \
+  -H "Authorization: Bearer <OAUTH_REGISTRATION_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"identity_type":"service_auth","client_name":"my-agent"}'
+```
+
+Returns a `client_id`/`client_secret` pair (secret shown once) that works
+with `POST /oauth/token` exactly like the static pair. Registered clients are
+stored in `server/data/oauth-clients.json` (gitignored; secrets are hashed
+with scrypt, never stored in plain text) — subject to the same
+ephemeral-storage caveat as the submissions file above.
+
+**Revoking a self-registered client entirely** (not just one token) has no
+API endpoint today — remove its entry from `server/data/oauth-clients.json`
+(or set its `"revoked": true`) and restart, or edit the file directly if your
+deploy has a persistent volume. Revoking a single access token before it
+expires uses `POST /oauth/revoke` (RFC 7009) — see `/auth.md` for the exact
+request shape.
+
+Leave `OAUTH_REGISTRATION_TOKEN` empty to disable self-registration
+entirely; the static client keeps working regardless.

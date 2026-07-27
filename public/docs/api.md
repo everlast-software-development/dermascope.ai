@@ -46,4 +46,7 @@ Lists Early Access submissions, newest first. Requires a bearer token from
 `admin:submissions:read` scope. Discovery metadata:
 [`/.well-known/oauth-authorization-server`](/.well-known/oauth-authorization-server),
 [`/.well-known/oauth-protected-resource`](/.well-known/oauth-protected-resource).
-Full setup guide: `docs/oauth-admin-api.md` in the source repo.
+
+**Agents:** the full authenticate-as-yourself walkthrough (register → get a
+token → call the endpoint → revoke) is [`/auth.md`](/auth.md). Full setup
+guide for the site operator: `docs/oauth-admin-api.md` in the source repo.

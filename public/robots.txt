@@ -6,6 +6,7 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /oauth/
+Disallow: /agent/identity
 Disallow: /server/
 
 # ── Search engines (explicit, so intent isn't left to defaults) ──

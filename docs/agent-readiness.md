@@ -1,12 +1,13 @@
 # Agent-readiness — what was implemented, and what wasn't
 
 This documents the response to an "isitagentready.com"-style audit covering
-14 checks. Most are genuinely useful for a public marketing site. Two
-(OAuth/OIDC discovery + protected-resource metadata) initially had nothing
-real to describe, so a real protected admin API was built to back them
-instead of publishing fake metadata — see below. Two more (`auth.md`, MCP
-Server Card) still describe infrastructure DermaScope.ai doesn't have and
-remain intentionally **not** faked.
+14 checks. Most are genuinely useful for a public marketing site. Three
+(OAuth/OIDC discovery, protected-resource metadata, and `auth.md`
+agent-registration) initially had nothing real to describe, so a real
+protected admin API — and a real, if deliberately narrow, agent-registration
+flow — was built to back them instead of publishing fake metadata — see
+below. One more (MCP Server Card) still describes infrastructure
+DermaScope.ai doesn't have and remains intentionally **not** faked.
 
 ## Implemented
 
@@ -27,6 +28,9 @@ remain intentionally **not** faked.
 | OAuth 2.0 discovery (RFC 8414) | `server.js` → `GET /.well-known/oauth-authorization-server` |
 | OAuth Protected Resource Metadata (RFC 9728) | `server.js` → `GET /.well-known/oauth-protected-resource` |
 | The protected resource itself | `server.js` → `GET /api/admin/submissions` — see [`docs/oauth-admin-api.md`](./oauth-admin-api.md) |
+| `auth.md` agent-registration metadata | [`public/auth.md`](../public/auth.md) |
+| `agent_auth` block (RFC 7591-flavored `service_auth` registration) | `server.js` → `POST /agent/identity`, referenced from `GET /.well-known/oauth-authorization-server` |
+| Token revocation (RFC 7009) | `server.js` → `POST /oauth/revoke` |
 
 All of the above describe **real** things: the real `/api/contact` and
 `/health` endpoints, and the real Early Access form action. Nothing here
@@ -50,19 +54,33 @@ we built the thing the check assumes exists: a real client_credentials OAuth
 `GET /api/admin/submissions` (reads locally-stored Early Access
 submissions). See [`docs/oauth-admin-api.md`](./oauth-admin-api.md) for setup.
 
+## auth.md — real, but deliberately narrower than the full spec
+
+The [workos/auth.md](https://github.com/workos/auth.md) protocol this check
+references defines three identity types (`service_auth`, `identity_assertion`,
+`anonymous`), a device-code-style "claim ceremony" for linking an agent
+identity to a human account, and an events/webhook system for revocation
+notices. DermaScope.ai only implements **`service_auth`** — a
+pre-provisioned or self-registered secret, gated behind an operator-issued
+initial access token (see [`docs/oauth-admin-api.md`](./oauth-admin-api.md)).
+
+`identity_assertion` (federated identity via ID-JAG) needs an external
+identity-provider relationship this site doesn't have; the claim ceremony and
+event webhooks need infrastructure (a device-code UI, a webhook dispatcher)
+that doesn't exist either. Rather than stub those out non-functionally, the
+`identity_types_supported` field in `agent_auth` lists only `service_auth`,
+and `/auth.md` says so explicitly — the same "advertise only what's real"
+principle applied throughout this doc.
+
 ## Still intentionally skipped
 
-These two checks assume an MCP server or an agent-self-registration flow.
-DermaScope.ai has neither — no MCP transport, no agent identity/registration
-system. Publishing metadata for them would mean inventing capabilities that
-don't back anything real.
+MCP Server Card (`/.well-known/mcp/server-card.json`) — DermaScope.ai runs no
+MCP transport. Publishing this would mean inventing an MCP server that
+doesn't exist.
 
-- `/auth.md` (agent registration)
-- MCP Server Card (`/.well-known/mcp/server-card.json`)
-
-**If either becomes real** (e.g. you stand up an actual MCP server),
-implementing the matching discovery document at that point is
-straightforward — ask again once the underlying infrastructure exists.
+**If that changes** (e.g. you stand up an actual MCP server), implementing
+the matching discovery document at that point is straightforward — ask again
+once the underlying infrastructure exists.
 
 ## DNS for AI Discovery (DNS-AID) — action required outside this repo
 

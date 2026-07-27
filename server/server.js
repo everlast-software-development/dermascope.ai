@@ -177,6 +177,46 @@ const TOKEN_TTL_S  = 3600;
 const ADMIN_CLIENT_ID     = process.env.OAUTH_ADMIN_CLIENT_ID || '';
 const ADMIN_CLIENT_SECRET = process.env.OAUTH_ADMIN_CLIENT_SECRET || '';
 
+// ─── Dynamic client registration (auth.md "service_auth") ───────────────────
+// Beyond the one static admin client above, agents can self-register for a
+// client_id/client_secret pair via POST /agent/identity — gated behind an
+// "initial access token" (RFC 7591 §3) so registration is still a decision a
+// human makes, not an open door onto a resource that returns applicant PII.
+// Registered clients are persisted (secret hashed, never stored in plain
+// text) to server/data/oauth-clients.json — gitignored, same ephemeral-
+// storage caveat as the submissions store. See docs/oauth-admin-api.md.
+const REGISTRATION_TOKEN = process.env.OAUTH_REGISTRATION_TOKEN || '';
+const CLIENTS_FILE = path.join(SUBMISSIONS_DIR, 'oauth-clients.json');
+
+function hashSecret(secret) {
+  const salt = crypto.randomBytes(16);
+  const hash = crypto.scryptSync(secret, salt, 64);
+  return `scrypt$${salt.toString('hex')}$${hash.toString('hex')}`;
+}
+function verifySecret(secret, stored) {
+  const parts = String(stored).split('$');
+  if (parts.length !== 3 || parts[0] !== 'scrypt') return false;
+  const salt = Buffer.from(parts[1], 'hex');
+  const expected = Buffer.from(parts[2], 'hex');
+  const actual = crypto.scryptSync(secret, salt, expected.length);
+  return crypto.timingSafeEqual(actual, expected);
+}
+function readClients() {
+  try {
+    return JSON.parse(fs.readFileSync(CLIENTS_FILE, 'utf8'));
+  } catch (err) {
+    if (err.code !== 'ENOENT') console.error('Failed to read OAuth client registry:', err.message);
+    return [];
+  }
+}
+function writeClients(clients) {
+  fs.mkdirSync(SUBMISSIONS_DIR, { recursive: true });
+  fs.writeFileSync(CLIENTS_FILE, JSON.stringify(clients, null, 2));
+}
+function findActiveClient(clientId) {
+  return readClients().find((c) => c.client_id === clientId && !c.revoked) || null;
+}
+
 // Signing key: generated fresh on every process start. Tokens are short-lived
 // (1h) and issued on demand, so a key that rotates on restart is fine — any
 // tokens signed by a previous instance simply stop verifying, and a client can
@@ -210,6 +250,51 @@ function parseBasicAuth(header) {
   }
 }
 
+// POST /agent/identity — auth.md "Register" step for the service_auth
+// identity type. Requires the operator's initial access token; there is no
+// open self-service signup (see comment on REGISTRATION_TOKEN above).
+app.post('/agent/identity', (req, res) => {
+  const presented = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (!REGISTRATION_TOKEN || !presented || !timingSafeEqualStr(presented, REGISTRATION_TOKEN)) {
+    res.set('WWW-Authenticate', 'Bearer realm="agent-registration"');
+    return res.status(401).json({
+      error: 'invalid_token',
+      error_description: 'A valid initial access token (from DermaScope.ai\'s operator) is required to register.',
+    });
+  }
+
+  const identityType = (req.body && req.body.identity_type) || '';
+  if (identityType !== 'service_auth') {
+    return res.status(400).json({
+      error: 'unsupported_identity_type',
+      error_description: 'Only "service_auth" is supported — no identity_assertion or anonymous registration.',
+    });
+  }
+
+  const clientName   = (req.body && String(req.body.client_name || '').trim()) || 'unnamed-agent';
+  const clientId      = `agt_${crypto.randomBytes(12).toString('hex')}`;
+  const clientSecret  = crypto.randomBytes(24).toString('base64url');
+
+  const clients = readClients();
+  clients.push({
+    client_id: clientId,
+    secret_hash: hashSecret(clientSecret),
+    client_name: clientName,
+    identity_type: 'service_auth',
+    scopes: [ADMIN_SCOPE],
+    created_at: new Date().toISOString(),
+    revoked: false,
+  });
+  writeClients(clients);
+
+  res.status(201).json({
+    identity_type: 'service_auth',
+    client_id: clientId,
+    client_secret: clientSecret, // shown once — the server never stores or returns it again
+    scopes: [ADMIN_SCOPE],
+  });
+});
+
 app.post('/oauth/token', (req, res) => {
   const grantType = (req.body && req.body.grant_type) || '';
   if (grantType !== 'client_credentials') {
@@ -220,14 +305,19 @@ app.post('/oauth/token', (req, res) => {
   const clientId     = basic ? basic.id     : req.body && req.body.client_id;
   const clientSecret = basic ? basic.secret : req.body && req.body.client_secret;
 
-  if (!ADMIN_CLIENT_ID || !ADMIN_CLIENT_SECRET) {
-    console.error('OAuth token request rejected: OAUTH_ADMIN_CLIENT_ID/OAUTH_ADMIN_CLIENT_SECRET are not configured.');
-    return res.status(401).json({ error: 'invalid_client' });
+  let authenticatedClientId = null;
+  if (
+    ADMIN_CLIENT_ID && ADMIN_CLIENT_SECRET &&
+    typeof clientId === 'string' && timingSafeEqualStr(clientId, ADMIN_CLIENT_ID) &&
+    typeof clientSecret === 'string' && timingSafeEqualStr(clientSecret, ADMIN_CLIENT_SECRET)
+  ) {
+    authenticatedClientId = clientId;
+  } else if (typeof clientId === 'string' && typeof clientSecret === 'string') {
+    const record = findActiveClient(clientId);
+    if (record && verifySecret(clientSecret, record.secret_hash)) authenticatedClientId = clientId;
   }
 
-  const idOk     = typeof clientId === 'string'     && timingSafeEqualStr(clientId, ADMIN_CLIENT_ID);
-  const secretOk = typeof clientSecret === 'string' && timingSafeEqualStr(clientSecret, ADMIN_CLIENT_SECRET);
-  if (!idOk || !secretOk) {
+  if (!authenticatedClientId) {
     res.set('WWW-Authenticate', 'Basic realm="oauth"');
     return res.status(401).json({ error: 'invalid_client' });
   }
@@ -237,8 +327,9 @@ app.post('/oauth/token', (req, res) => {
     keyid: SIGNING_KID,
     issuer: ISSUER,
     audience: RESOURCE_URI,
-    subject: clientId,
+    subject: authenticatedClientId,
     expiresIn: TOKEN_TTL_S,
+    jwtid: crypto.randomUUID(),
   });
 
   res.json({
@@ -247,6 +338,49 @@ app.post('/oauth/token', (req, res) => {
     expires_in: TOKEN_TTL_S,
     scope: ADMIN_SCOPE,
   });
+});
+
+// ─── Token revocation (RFC 7009) ─────────────────────────────────────────────
+// In-memory only, by design: the signing key itself rotates every process
+// restart (see above), which already invalidates every previously issued
+// token — so a revocation list only needs to outlive the process it was
+// created in, and tokens are short-lived (1h) besides.
+const revokedJtis = new Map(); // jti -> expiry (ms)
+function pruneRevoked() {
+  const now = Date.now();
+  for (const [jti, expiry] of revokedJtis) if (expiry <= now) revokedJtis.delete(jti);
+}
+
+app.post('/oauth/revoke', (req, res) => {
+  const token = (req.body && req.body.token) || '';
+  const basic = parseBasicAuth(req.headers.authorization);
+  const clientId     = basic ? basic.id     : req.body && req.body.client_id;
+  const clientSecret = basic ? basic.secret : req.body && req.body.client_secret;
+
+  try {
+    const decoded = jwt.verify(token, SIGNING_PUBLIC_PEM, { algorithms: ['RS256'], issuer: ISSUER, audience: RESOURCE_URI });
+
+    // Only the client that owns the token (its `sub`) may revoke it, and must
+    // re-present valid credentials for that same client.
+    let credentialsOk = false;
+    if (decoded.sub === clientId && typeof clientId === 'string' && typeof clientSecret === 'string') {
+      if (ADMIN_CLIENT_ID && timingSafeEqualStr(clientId, ADMIN_CLIENT_ID) && timingSafeEqualStr(clientSecret, ADMIN_CLIENT_SECRET)) {
+        credentialsOk = true;
+      } else {
+        const record = findActiveClient(clientId);
+        credentialsOk = !!(record && verifySecret(clientSecret, record.secret_hash));
+      }
+    }
+    if (credentialsOk && decoded.jti) {
+      pruneRevoked();
+      revokedJtis.set(decoded.jti, decoded.exp * 1000);
+    }
+  } catch {
+    // Invalid/expired/garbled token — RFC 7009 §2.2 says respond 200 anyway,
+    // so as not to leak whether a given token value ever existed.
+  }
+
+  res.status(200).end();
 });
 
 // RFC 8414 — no authorization_endpoint / response_types_supported: this server
@@ -261,6 +395,20 @@ app.get('/.well-known/oauth-authorization-server', (_req, res) => {
     jwks_uri: `${ISSUER}/.well-known/jwks.json`,
     grant_types_supported: ['client_credentials'],
     scopes_supported: [ADMIN_SCOPE],
+    revocation_endpoint: `${ISSUER}/oauth/revoke`,
+    revocation_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post'],
+    // auth.md (https://github.com/workos/auth.md) agent-registration extension.
+    // Only `service_auth` is listed under identity_types_supported: this site
+    // has no external identity provider and no device-code "claim" UI, so the
+    // richer identity_assertion / anonymous flows the spec describes aren't
+    // offered — advertising them would describe infrastructure that doesn't
+    // exist, the same reasoning documented in docs/agent-readiness.md.
+    agent_auth: {
+      skill: `${ISSUER}/auth.md`,
+      identity_endpoint: `${ISSUER}/agent/identity`,
+      identity_types_supported: ['service_auth'],
+      revocation_endpoint: `${ISSUER}/oauth/revoke`,
+    },
   });
 });
 
@@ -297,6 +445,11 @@ function requireAdminAuth(req, res, next) {
   } catch (err) {
     res.set('WWW-Authenticate', 'Bearer realm="admin", error="invalid_token"');
     return res.status(401).json({ error: 'invalid_token', error_description: err.message });
+  }
+
+  if (decoded.jti && revokedJtis.has(decoded.jti)) {
+    res.set('WWW-Authenticate', 'Bearer realm="admin", error="invalid_token"');
+    return res.status(401).json({ error: 'invalid_token', error_description: 'Token has been revoked.' });
   }
 
   const scopes = String(decoded.scope || '').split(' ');
