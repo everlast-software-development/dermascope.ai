@@ -24,3 +24,6 @@ Thumbs.db
 
 # Standalone design exports (large, not part of the Vite app)
 DermaScope Landing*.html
+
+# Early Access submissions store (contains applicant PII — never commit)
+server/data/

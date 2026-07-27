@@ -6,6 +6,7 @@ const crypto     = require('crypto');
 const express    = require('express');
 const cors       = require('cors');
 const nodemailer = require('nodemailer');
+const jwt        = require('jsonwebtoken');
 
 // Load .env from the server folder regardless of the working directory (so it
 // works whether started from repo root `npm start` or from server/). In Railway
@@ -22,6 +23,7 @@ const PORT = process.env.PORT || 5000;
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(express.json());
+app.use(express.urlencoded({ extended: false })); // OAuth token requests use form-encoded bodies (RFC 6749 §4.4.2)
 app.use(cors({
   origin: [
     'http://localhost:5173',  // Vite dev server
@@ -112,6 +114,205 @@ async function appendToGoogleSheet(payload, timestampIso) {
     clearTimeout(timeout);
   }
 }
+
+// ─── Local submissions store (backs the protected admin API below) ──────────────
+// Lightweight JSON-Lines file — no database in this project. Best-effort, mirrors
+// the pattern used for Google Sheets: a write failure here is logged and never
+// blocks or fails the /api/contact request. NOTE: on Railway (or any host without
+// a persistent volume mounted at this path) this file resets on every redeploy —
+// Google Sheets remains the durable record; this store only exists to back
+// GET /api/admin/submissions for quick programmatic reads. See
+// docs/oauth-admin-api.md.
+const SUBMISSIONS_DIR  = path.join(__dirname, 'data');
+const SUBMISSIONS_FILE = path.join(SUBMISSIONS_DIR, 'submissions.jsonl');
+
+function appendSubmissionRecord(payload, timestampIso) {
+  try {
+    fs.mkdirSync(SUBMISSIONS_DIR, { recursive: true });
+    const record = {
+      timestamp:    timestampIso,
+      name:         payload.name ?? '',
+      title:        payload.title ?? '',
+      specialty:    payload.specialty ?? '',
+      organization: payload.organization ?? '',
+      country:      payload.country ?? '',
+      city:         payload.city ?? '',
+      email:        payload.email ?? '',
+      phone:        payload.phone ?? '',
+      interest:     payload.interest ?? '',
+      physicians:   payload.physicians ?? '',
+      emr:          payload.emr ?? '',
+      challenges:   Array.isArray(payload.challenges) ? payload.challenges : (payload.challenges ? [payload.challenges] : []),
+      consent:      isConsented(payload.consent),
+    };
+    fs.appendFileSync(SUBMISSIONS_FILE, JSON.stringify(record) + '\n');
+  } catch (err) {
+    console.error('Failed to persist submission record:', err.message);
+  }
+}
+
+function readSubmissions() {
+  try {
+    const raw = fs.readFileSync(SUBMISSIONS_FILE, 'utf8');
+    return raw.split('\n').filter(Boolean).map((line) => JSON.parse(line)).reverse(); // newest first
+  } catch (err) {
+    if (err.code !== 'ENOENT') console.error('Failed to read submissions store:', err.message);
+    return [];
+  }
+}
+
+// ─── OAuth 2.0 authorization server (RFC 6749 / RFC 8414) ───────────────────────
+// A real, working — not fabricated — authorization server: it protects exactly
+// one resource, GET /api/admin/submissions, via the client_credentials grant
+// (machine-to-machine; there is no end-user login on this site, so no
+// authorization endpoint / redirect-based flow is offered or advertised).
+//
+// Setup: set OAUTH_ADMIN_CLIENT_ID and OAUTH_ADMIN_CLIENT_SECRET in the server
+// environment (see .env.example). Full guide: docs/oauth-admin-api.md.
+const ISSUER       = (process.env.SITE_URL || 'https://dermascope.ai').replace(/\/$/, '');
+const RESOURCE_URI = `${ISSUER}/api/admin`;
+const ADMIN_SCOPE  = 'admin:submissions:read';
+const TOKEN_TTL_S  = 3600;
+
+const ADMIN_CLIENT_ID     = process.env.OAUTH_ADMIN_CLIENT_ID || '';
+const ADMIN_CLIENT_SECRET = process.env.OAUTH_ADMIN_CLIENT_SECRET || '';
+
+// Signing key: generated fresh on every process start. Tokens are short-lived
+// (1h) and issued on demand, so a key that rotates on restart is fine — any
+// tokens signed by a previous instance simply stop verifying, and a client can
+// always request a new one. No key material to provision or leak.
+const { publicKey: SIGNING_PUBLIC_KEY, privateKey: SIGNING_PRIVATE_KEY } =
+  crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+const SIGNING_KID        = crypto.randomBytes(8).toString('hex');
+const SIGNING_PRIVATE_PEM = SIGNING_PRIVATE_KEY.export({ type: 'pkcs8', format: 'pem' });
+const SIGNING_PUBLIC_PEM  = SIGNING_PUBLIC_KEY.export({ type: 'spki', format: 'pem' });
+const SIGNING_PUBLIC_JWK  = { ...SIGNING_PUBLIC_KEY.export({ format: 'jwk' }), kid: SIGNING_KID, use: 'sig', alg: 'RS256' };
+
+function timingSafeEqualStr(a, b) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+// Accepts client credentials via HTTP Basic auth (preferred, RFC 6749 §2.3.1)
+// or client_secret_post (id/secret in the body) — both are advertised in the
+// discovery document below.
+function parseBasicAuth(header) {
+  if (!header || !header.startsWith('Basic ')) return null;
+  try {
+    const decoded = Buffer.from(header.slice(6), 'base64').toString('utf8');
+    const sep = decoded.indexOf(':');
+    if (sep === -1) return null;
+    return { id: decoded.slice(0, sep), secret: decoded.slice(sep + 1) };
+  } catch {
+    return null;
+  }
+}
+
+app.post('/oauth/token', (req, res) => {
+  const grantType = (req.body && req.body.grant_type) || '';
+  if (grantType !== 'client_credentials') {
+    return res.status(400).json({ error: 'unsupported_grant_type' });
+  }
+
+  const basic = parseBasicAuth(req.headers.authorization);
+  const clientId     = basic ? basic.id     : req.body && req.body.client_id;
+  const clientSecret = basic ? basic.secret : req.body && req.body.client_secret;
+
+  if (!ADMIN_CLIENT_ID || !ADMIN_CLIENT_SECRET) {
+    console.error('OAuth token request rejected: OAUTH_ADMIN_CLIENT_ID/OAUTH_ADMIN_CLIENT_SECRET are not configured.');
+    return res.status(401).json({ error: 'invalid_client' });
+  }
+
+  const idOk     = typeof clientId === 'string'     && timingSafeEqualStr(clientId, ADMIN_CLIENT_ID);
+  const secretOk = typeof clientSecret === 'string' && timingSafeEqualStr(clientSecret, ADMIN_CLIENT_SECRET);
+  if (!idOk || !secretOk) {
+    res.set('WWW-Authenticate', 'Basic realm="oauth"');
+    return res.status(401).json({ error: 'invalid_client' });
+  }
+
+  const accessToken = jwt.sign({ scope: ADMIN_SCOPE }, SIGNING_PRIVATE_PEM, {
+    algorithm: 'RS256',
+    keyid: SIGNING_KID,
+    issuer: ISSUER,
+    audience: RESOURCE_URI,
+    subject: clientId,
+    expiresIn: TOKEN_TTL_S,
+  });
+
+  res.json({
+    access_token: accessToken,
+    token_type: 'Bearer',
+    expires_in: TOKEN_TTL_S,
+    scope: ADMIN_SCOPE,
+  });
+});
+
+// RFC 8414 — no authorization_endpoint / response_types_supported: this server
+// only supports client_credentials, so it never uses the authorization endpoint
+// (both fields are conditionally required by the RFC only when such a flow is
+// supported).
+app.get('/.well-known/oauth-authorization-server', (_req, res) => {
+  res.type('application/json').json({
+    issuer: ISSUER,
+    token_endpoint: `${ISSUER}/oauth/token`,
+    token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post'],
+    jwks_uri: `${ISSUER}/.well-known/jwks.json`,
+    grant_types_supported: ['client_credentials'],
+    scopes_supported: [ADMIN_SCOPE],
+  });
+});
+
+// RFC 9728 — tells a client which authorization server issues tokens accepted
+// by the one protected resource on this site.
+app.get('/.well-known/oauth-protected-resource', (_req, res) => {
+  res.type('application/json').json({
+    resource: RESOURCE_URI,
+    authorization_servers: [ISSUER],
+    scopes_supported: [ADMIN_SCOPE],
+    bearer_methods_supported: ['header'],
+  });
+});
+
+app.get('/.well-known/jwks.json', (_req, res) => {
+  res.type('application/json').json({ keys: [SIGNING_PUBLIC_JWK] });
+});
+
+// RFC 6750 bearer-token check for the admin API.
+function requireAdminAuth(req, res, next) {
+  const [scheme, token] = (req.headers.authorization || '').split(' ');
+  if (scheme !== 'Bearer' || !token) {
+    res.set('WWW-Authenticate', 'Bearer realm="admin", error="invalid_request"');
+    return res.status(401).json({ error: 'invalid_request', error_description: 'Missing bearer token.' });
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, SIGNING_PUBLIC_PEM, {
+      algorithms: ['RS256'],
+      issuer: ISSUER,
+      audience: RESOURCE_URI,
+    });
+  } catch (err) {
+    res.set('WWW-Authenticate', 'Bearer realm="admin", error="invalid_token"');
+    return res.status(401).json({ error: 'invalid_token', error_description: err.message });
+  }
+
+  const scopes = String(decoded.scope || '').split(' ');
+  if (!scopes.includes(ADMIN_SCOPE)) {
+    res.set('WWW-Authenticate', `Bearer realm="admin", error="insufficient_scope", scope="${ADMIN_SCOPE}"`);
+    return res.status(403).json({ error: 'insufficient_scope' });
+  }
+
+  req.auth = decoded;
+  next();
+}
+
+app.get('/api/admin/submissions', requireAdminAuth, (_req, res) => {
+  const submissions = readSubmissions();
+  res.json({ count: submissions.length, submissions });
+});
 
 // ─── Shared email design system ───────────────────────────────────────────────
 // Brand font stack: Outfit (brand) with robust, email-safe system fallbacks.
@@ -457,6 +658,10 @@ AI outputs are intended to support—not replace—clinical judgment. Every fina
   // the emails so a Sheets outage can never delay or break the email workflow.
   await appendToGoogleSheet(req.body || {}, now.toISOString());
 
+  // Record it locally too, so it shows up in GET /api/admin/submissions.
+  // Synchronous and guarded — never able to fail the request either.
+  appendSubmissionRecord(req.body || {}, now.toISOString());
+
   return res.status(200).json({ success: true, message: 'Email sent successfully.' });
 });
 
@@ -504,17 +709,24 @@ POST https://dermascope.ai/api/contact — see https://dermascope.ai/docs/api.md
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 // ─── API catalog (RFC 9727) ───────────────────────────────────────────────────
-// This site has exactly one backend endpoint (POST /api/contact, the Early
-// Access form) plus /health. The catalog below describes only that — it does
-// not claim any broader API surface.
+// This site has two backend resources: the public POST /api/contact (Early
+// Access form) plus /health, and the OAuth-protected GET /api/admin/submissions.
+// The catalog below describes only those — it does not claim any broader API
+// surface.
 app.get('/.well-known/api-catalog', (_req, res) => {
   res.type('application/linkset+json').json({
     linkset: [
       {
-        anchor: 'https://dermascope.ai/api/contact',
-        'service-desc': [{ href: 'https://dermascope.ai/openapi.yaml', type: 'application/yaml' }],
-        'service-doc':  [{ href: 'https://dermascope.ai/docs/api.md', type: 'text/markdown' }],
-        status:         [{ href: 'https://dermascope.ai/health', type: 'application/json' }],
+        anchor: `${ISSUER}/api/contact`,
+        'service-desc': [{ href: `${ISSUER}/openapi.yaml`, type: 'application/yaml' }],
+        'service-doc':  [{ href: `${ISSUER}/docs/api.md`, type: 'text/markdown' }],
+        status:         [{ href: `${ISSUER}/health`, type: 'application/json' }],
+      },
+      {
+        anchor: RESOURCE_URI,
+        'service-desc': [{ href: `${ISSUER}/openapi.yaml`, type: 'application/yaml' }],
+        'service-doc':  [{ href: `${ISSUER}/docs/api.md`, type: 'text/markdown' }],
+        'protected-resource-metadata': [{ href: `${ISSUER}/.well-known/oauth-protected-resource`, type: 'application/json' }],
       },
     ],
   });

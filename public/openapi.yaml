@@ -2,10 +2,10 @@ openapi: 3.0.3
 info:
   title: DermaScope.ai — Early Access API
   description: >
-    The public-facing API behind the DermaScope.ai Early Access form.
-    This is the site's only backend endpoint — there is no broader public
-    API surface today.
-  version: "1.0.0"
+    The public-facing API behind the DermaScope.ai Early Access form, plus a
+    small OAuth-protected admin API for reading submitted requests. There is
+    no broader public API surface today.
+  version: "1.1.0"
   contact:
     url: https://dermascope.ai
 servers:
@@ -69,7 +69,78 @@ paths:
                 type: object
                 properties:
                   status: { type: string, example: "ok" }
+  /oauth/token:
+    post:
+      operationId: getAdminAccessToken
+      summary: Obtain an admin access token (client_credentials grant)
+      description: >
+        RFC 6749 client_credentials grant. Client credentials may be sent via
+        HTTP Basic auth or in the request body (client_secret_post). See
+        /.well-known/oauth-authorization-server for full discovery metadata.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [grant_type]
+              properties:
+                grant_type:    { type: string, enum: [client_credentials] }
+                client_id:     { type: string }
+                client_secret: { type: string }
+      responses:
+        '200':
+          description: Access token issued.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  token_type:   { type: string, example: "Bearer" }
+                  expires_in:   { type: integer, example: 3600 }
+                  scope:        { type: string, example: "admin:submissions:read" }
+        '400':
+          description: Unsupported or missing grant_type.
+        '401':
+          description: Invalid client credentials.
+  /api/admin/submissions:
+    get:
+      operationId: listEarlyAccessSubmissions
+      summary: List Early Access submissions
+      security:
+        - adminBearerAuth: []
+      responses:
+        '200':
+          description: Submissions, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+                  submissions:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/EarlyAccessRequest'
+                        - type: object
+                          properties:
+                            timestamp: { type: string, format: date-time }
+        '401':
+          description: Missing or invalid bearer token.
+        '403':
+          description: Token lacks the admin:submissions:read scope.
 components:
+  securitySchemes:
+    adminBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        RS256 JWT issued by POST /oauth/token. Must carry the
+        admin:submissions:read scope. Verify against
+        /.well-known/jwks.json.
   schemas:
     EarlyAccessRequest:
       type: object

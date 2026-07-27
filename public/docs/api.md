@@ -38,3 +38,12 @@ Response: `{ "success": true, "message": "Email sent successfully." }`
 ## `GET /health`
 
 Liveness check. Response: `{ "status": "ok" }`
+
+## `GET /api/admin/submissions` (OAuth-protected)
+
+Lists Early Access submissions, newest first. Requires a bearer token from
+`POST /oauth/token` (client_credentials grant) with the
+`admin:submissions:read` scope. Discovery metadata:
+[`/.well-known/oauth-authorization-server`](/.well-known/oauth-authorization-server),
+[`/.well-known/oauth-protected-resource`](/.well-known/oauth-protected-resource).
+Full setup guide: `docs/oauth-admin-api.md` in the source repo.
