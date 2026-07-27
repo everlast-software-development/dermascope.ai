@@ -91,15 +91,32 @@ the audit's "Fix" text implied; those belong to the live `initialize`
 response, not the static card). Full writeup:
 [`docs/mcp-server.md`](./mcp-server.md).
 
-## A note on stale findings
+## A note on stale (and repeated) findings
 
-One of the re-raised checks — `auth.md exists but agent_auth metadata was
-not found` — was already fixed and deployed before this check ran again.
-Live verification (`curl https://dermascope.ai/.well-known/oauth-authorization-server`)
-confirms the `agent_auth` block is present and correct. If an audit tool
-flags something that's demonstrably live, treat it as a caching/timing
-false-negative rather than assuming more work is needed — verify against the
-real site before re-implementing anything.
+The check `auth.md exists but agent_auth metadata was not found` was raised
+twice. Both times, live verification
+(`curl https://dermascope.ai/.well-known/oauth-authorization-server`)
+confirmed the `agent_auth` block was already present and correct — not a
+deploy-timing fluke, since it stayed correct across two separate checks.
+
+The likely real cause: the checker's own "Fix" text names fields
+(`register_uri`, "credential types", "claim/revocation URLs") that don't
+match the actual auth.md spec's field names (verified against
+[github.com/workos/auth.md](https://github.com/workos/auth.md) —
+`identity_endpoint`, `identity_types_supported`, `revocation_endpoint`, no
+"credential type" concept at all). A checker doing a literal string search
+for its own suggested names would miss a spec-correct implementation using
+the real ones. Rather than keep re-verifying the same non-problem, `register_uri`
+and `revocation_uri` are now published as aliases of the real
+`identity_endpoint`/`revocation_endpoint` (same endpoints, two labels), and
+`credential_types_supported: ["client_secret"]` was added — accurate
+(service_auth's credential *is* a client_secret) and not previously stated
+explicitly. `claim_uri` is still absent: there's still no claim ceremony to
+link to (see the `auth.md` section above) — that's a real gap, not a
+labeling one, and won't be closed by renaming fields.
+
+If a re-raised finding keeps failing after live verification, suspect the
+checker's expectations before assuming the implementation is wrong.
 
 ## DNS for AI Discovery (DNS-AID) — action required outside this repo
 

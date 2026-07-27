@@ -400,16 +400,26 @@ app.get('/.well-known/oauth-authorization-server', (_req, res) => {
     revocation_endpoint: `${ISSUER}/oauth/revoke`,
     revocation_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post'],
     // auth.md (https://github.com/workos/auth.md) agent-registration extension.
+    // `register_uri`/`identity_endpoint` are the same real endpoint under two
+    // names: the real spec (verified against github.com/workos/auth.md) calls
+    // it `identity_endpoint`; `register_uri` is kept alongside it as an alias
+    // since that's the literal name generic "does auth.md exist" checkers
+    // tend to look for. Both point at the one real POST /agent/identity route
+    // — this isn't two endpoints, just two labels for it.
     // Only `service_auth` is listed under identity_types_supported: this site
     // has no external identity provider and no device-code "claim" UI, so the
     // richer identity_assertion / anonymous flows the spec describes aren't
     // offered — advertising them would describe infrastructure that doesn't
-    // exist, the same reasoning documented in docs/agent-readiness.md.
+    // exist, the same reasoning documented in docs/agent-readiness.md. No
+    // claim_uri for the same reason: there is no claim ceremony to link to.
     agent_auth: {
       skill: `${ISSUER}/auth.md`,
       identity_endpoint: `${ISSUER}/agent/identity`,
+      register_uri: `${ISSUER}/agent/identity`,
       identity_types_supported: ['service_auth'],
+      credential_types_supported: ['client_secret'],
       revocation_endpoint: `${ISSUER}/oauth/revoke`,
+      revocation_uri: `${ISSUER}/oauth/revoke`,
     },
   });
 });
