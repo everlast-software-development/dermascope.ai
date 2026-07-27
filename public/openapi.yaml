@@ -1,0 +1,105 @@
+openapi: 3.0.3
+info:
+  title: DermaScope.ai — Early Access API
+  description: >
+    The public-facing API behind the DermaScope.ai Early Access form.
+    This is the site's only backend endpoint — there is no broader public
+    API surface today.
+  version: "1.0.0"
+  contact:
+    url: https://dermascope.ai
+servers:
+  - url: https://dermascope.ai
+paths:
+  /api/contact:
+    post:
+      operationId: submitEarlyAccessRequest
+      summary: Submit an Early Access request
+      description: >
+        Validates and records an Early Access submission. On success this
+        sends an internal notification email, a confirmation email to the
+        applicant, and (best-effort, non-blocking) appends the submission to
+        a Google Sheet.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EarlyAccessRequest'
+      responses:
+        '200':
+          description: Submission accepted and emailed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: "Email sent successfully." }
+        '400':
+          description: Validation failed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: false }
+                  errors:
+                    type: array
+                    items: { type: string }
+        '500':
+          description: Email delivery failed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: false }
+                  error: { type: string }
+  /health:
+    get:
+      operationId: getHealth
+      summary: Health check
+      responses:
+        '200':
+          description: Service is up.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: "ok" }
+components:
+  schemas:
+    EarlyAccessRequest:
+      type: object
+      required:
+        - name
+        - email
+        - title
+        - specialty
+        - organization
+        - country
+        - city
+        - phone
+        - interest
+        - consent
+      properties:
+        name:        { type: string, minLength: 2, description: "Full name" }
+        title:       { type: string, description: "Professional title" }
+        specialty:   { type: string, description: "Clinical specialty" }
+        organization: { type: string, description: "Clinic / hospital / organization" }
+        country:     { type: string }
+        city:        { type: string }
+        email:       { type: string, format: email }
+        phone:       { type: string, description: "Mobile / WhatsApp number" }
+        interest:    { type: string, description: "Type of interest" }
+        physicians:  { type: string, description: "Physicians in organization (optional)" }
+        emr:         { type: string, description: "Current EMR / HIS (optional)" }
+        challenges:
+          type: array
+          items: { type: string }
+          description: "Main challenges to solve (optional, multi-select)"
+        consent:
+          type: boolean
+          description: "Consent to be contacted — must be true"

@@ -2,6 +2,7 @@
 
 const path       = require('path');
 const fs         = require('fs');
+const crypto     = require('crypto');
 const express    = require('express');
 const cors       = require('cors');
 const nodemailer = require('nodemailer');
@@ -459,8 +460,92 @@ AI outputs are intended to support—not replace—clinical judgment. Every fina
   return res.status(200).json({ success: true, message: 'Email sent successfully.' });
 });
 
+// ─── Markdown for Agents — homepage digest ───────────────────────────────────
+// Hand-authored, kept in sync with the real Hero/section copy (not generated
+// from the rendered DOM), served when a request's Accept header asks for
+// text/markdown instead of HTML.
+const HOMEPAGE_MARKDOWN = `# DermaScope.ai
+
+When Every Detail Matters, AI Sees More. Physicians Decide.
+
+From everyday dermatology to the most challenging and complex skin
+conditions, DermaScope.ai transforms clinical images into actionable
+intelligence — helping physicians detect critical visual patterns,
+prioritize high-risk findings, and make more informed clinical decisions.
+
+Physician-supervised clinical AI.
+
+## Highlights
+- 300+ skin conditions supported
+- Multi-angle capture — standardized imaging for better AI results
+- 95% analysis accuracy — explainable AI findings
+- Results in 2–3 minutes
+
+## Sections
+- The Clinical Reality
+- One Unified Platform
+- Why DermaScope.ai
+- How It Works
+- Who Is DermaScope.ai Built For?
+- FAQ
+- Get Started — Join Early Access
+
+## Calls to action
+- Join Early Access — https://dermascope.ai/#demo
+- Watch Video — a "How It Works" walkthrough, opened from the homepage
+- Full navigation: Home, Features, How It Works, Clinical Applications, About, Contact
+
+## API
+The only backend endpoint is the Early Access submission form:
+POST https://dermascope.ai/api/contact — see https://dermascope.ai/docs/api.md
+`;
+
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+
+// ─── API catalog (RFC 9727) ───────────────────────────────────────────────────
+// This site has exactly one backend endpoint (POST /api/contact, the Early
+// Access form) plus /health. The catalog below describes only that — it does
+// not claim any broader API surface.
+app.get('/.well-known/api-catalog', (_req, res) => {
+  res.type('application/linkset+json').json({
+    linkset: [
+      {
+        anchor: 'https://dermascope.ai/api/contact',
+        'service-desc': [{ href: 'https://dermascope.ai/openapi.yaml', type: 'application/yaml' }],
+        'service-doc':  [{ href: 'https://dermascope.ai/docs/api.md', type: 'text/markdown' }],
+        status:         [{ href: 'https://dermascope.ai/health', type: 'application/json' }],
+      },
+    ],
+  });
+});
+
+// ─── Agent skills discovery index ─────────────────────────────────────────────
+// Lists the site's one real, callable action (submitting an Early Access
+// request). The sha256 is computed from the referenced file at request time
+// so it can never drift out of sync with its content.
+const AGENT_SKILLS_DIR = path.join(__dirname, '..', 'public', '.well-known', 'agent-skills');
+app.get('/.well-known/agent-skills/index.json', (_req, res) => {
+  const skillFile = path.join(AGENT_SKILLS_DIR, 'early-access-request.json');
+  let sha256 = null;
+  try {
+    sha256 = crypto.createHash('sha256').update(fs.readFileSync(skillFile)).digest('hex');
+  } catch (err) {
+    console.error('agent-skills index: failed to hash skill file:', err.message);
+  }
+  res.type('application/json').json({
+    $schema: 'https://github.com/cloudflare/agent-skills-discovery-rfc',
+    skills: [
+      {
+        name: 'submit-early-access-request',
+        type: 'api',
+        description: 'Submit a DermaScope.ai Early Access request (clinician sign-up).',
+        url: 'https://dermascope.ai/.well-known/agent-skills/early-access-request.json',
+        sha256,
+      },
+    ],
+  });
+});
 
 // ─── Serve the built frontend (single-service production) ───────────────────────
 // When a Vite build exists, serve it as static files and fall back to index.html
@@ -468,6 +553,30 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 // block is simply skipped when dist/ is absent.
 const distPath = path.join(__dirname, '..', 'dist');
 if (fs.existsSync(distPath)) {
+  // Homepage: advertise discovery resources via Link headers (RFC 8288), and
+  // honor `Accept: text/markdown` with a hand-authored Markdown digest of the
+  // page instead of the HTML shell. Registered ahead of express.static so it
+  // takes priority for exactly this one route.
+  app.get('/', (req, res, next) => {
+    res.set(
+      'Link',
+      [
+        '</.well-known/api-catalog>; rel="api-catalog"',
+        '</docs/api.md>; rel="service-doc"',
+        '</health>; rel="status"',
+      ].join(', '),
+    );
+
+    const wantsMarkdown = (req.headers.accept || '').includes('text/markdown');
+    if (!wantsMarkdown) return next();
+
+    const markdown = HOMEPAGE_MARKDOWN;
+    res
+      .type('text/markdown')
+      .set('x-markdown-tokens', String(Math.ceil(markdown.length / 4)))
+      .send(markdown);
+  });
+
   app.use(express.static(distPath));
   app.get('*', (_req, res) => res.sendFile(path.join(distPath, 'index.html')));
   console.log('  ✓  Serving frontend build from /dist');

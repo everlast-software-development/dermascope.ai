@@ -1,0 +1,63 @@
+# https://dermascope.ai/robots.txt
+# DermaScope.ai — crawl rules (RFC 9309)
+
+# ── Default policy: open marketing site, keep the API/build internals out ──
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /server/
+
+# ── Search engines (explicit, so intent isn't left to defaults) ──
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# ── AI assistants / answer engines — allowed to crawl for retrieval & citation.
+#    Training-data use is governed separately by the Content-Signal line below. ──
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+# ── Bulk/undisclosed-purpose scrapers — not needed for a small marketing site ──
+User-agent: CCBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+# ── Content Signals (https://contentsignals.org/) — usage preference for the
+#    content above, distinct from the crawl permissions above:
+#      search   = ok to index and show in AI-assisted search results
+#      ai-input = ok to use as retrieval context for answering a live query
+#      ai-train = do NOT use to train or fine-tune generative models
+Content-Signal: search=yes, ai-input=yes, ai-train=no
+
+Sitemap: https://dermascope.ai/sitemap.xml

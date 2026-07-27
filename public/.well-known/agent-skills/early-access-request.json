@@ -1,0 +1,27 @@
+{
+  "name": "submit-early-access-request",
+  "type": "api",
+  "description": "Submit a DermaScope.ai Early Access request (clinician sign-up) via POST /api/contact.",
+  "endpoint": "https://dermascope.ai/api/contact",
+  "method": "POST",
+  "inputSchema": {
+    "type": "object",
+    "required": ["name", "email", "title", "specialty", "organization", "country", "city", "phone", "interest", "consent"],
+    "properties": {
+      "name": { "type": "string", "minLength": 2, "description": "Full name" },
+      "email": { "type": "string", "format": "email" },
+      "title": { "type": "string", "description": "Professional title" },
+      "specialty": { "type": "string", "description": "Clinical specialty" },
+      "organization": { "type": "string", "description": "Clinic / hospital / organization" },
+      "country": { "type": "string" },
+      "city": { "type": "string" },
+      "phone": { "type": "string", "description": "Mobile / WhatsApp number" },
+      "interest": { "type": "string", "description": "Type of interest" },
+      "physicians": { "type": "string", "description": "Physicians in organization (optional)" },
+      "emr": { "type": "string", "description": "Current EMR / HIS (optional)" },
+      "challenges": { "type": "array", "items": { "type": "string" }, "description": "Main challenges to solve (optional)" },
+      "consent": { "type": "boolean", "description": "Must be true — consent to be contacted" }
+    }
+  },
+  "documentation": "https://dermascope.ai/docs/api.md"
+}
