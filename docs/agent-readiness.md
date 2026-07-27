@@ -118,47 +118,113 @@ labeling one, and won't be closed by renaming fields.
 If a re-raised finding keeps failing after live verification, suspect the
 checker's expectations before assuming the implementation is wrong.
 
-## DNS for AI Discovery (DNS-AID) — action required outside this repo
+## DNS for AI Discovery (DNS-AID) — the exact records, verified
 
-DNS-AID publishes discovery records under your domain's DNS zone. This
-**cannot be done from the codebase** — it requires access to whichever
-service manages `dermascope.ai`'s DNS (e.g. Cloudflare, GoDaddy, Namecheap,
-Route 53). No such records were published. The record syntax below was
-corrected against the actual draft
-(`draft-mozleywilliams-dnsop-dnsaid`, fetched directly rather than
-recalled from memory) — an earlier version of this doc had the label order
-backwards (`_agents._index` instead of `_index._agents`) and invented an
-`endpoint` SvcParam that isn't part of the spec. Real SvcParams are `alpn`,
-`well-known`, `cap`/`cap-sha256`, `policy`, `realm`.
+DNS-AID publishes discovery records under the domain's DNS zone. This
+**cannot be done from the codebase** — it requires the Cloudflare dashboard
+or API for `dermascope.ai`'s zone (confirmed via `nslookup -type=NS`:
+nameservers are `melissa.ns.cloudflare.com` / `ram.ns.cloudflare.com`). No
+such records exist yet. Everything below was verified live, against the
+current draft (`draft-mozleywilliams-dnsop-dnsaid-**02**`, 27 May 2026 —
+fetched fresh; an earlier version of this doc used draft text that has since
+been superseded) and against this domain's actual state — nothing here is a
+placeholder.
 
-1. In your DNS provider's dashboard, add an `SVCB` record:
-   - **Name:** `_index._agents.dermascope.ai` — this is the spec's fixed
-     entry-point label (chosen for eventual IANA registration), not a
-     placeholder to swap out.
-   - **Priority:** `1` (ServiceMode)
-   - **Target:** `.` (this domain — no separate host)
-   - **Params:** `alpn` names the protocol(s) this domain offers (e.g. `mcp`
-     for the MCP server this repo now has, or `a2a` if you add an A2A agent
-     later); `well-known` names the RFC 8615 path clients should fetch
-     relative to `/.well-known/` on this domain.
+### What actually gets advertised, and why only this
 
-   Example zone-file syntax, pointing at the real MCP Server Card this repo
-   now serves:
-   ```
-   _index._agents.dermascope.ai. 3600 IN SVCB 1 . alpn="mcp" well-known="mcp/server-card.json"
-   ```
-   Multi-protocol domains need one record per protocol (distinct `alpn`
-   values), not a comma-separated list in one record.
+Inspected: API catalog, OAuth server, WebMCP, OpenAPI, agent skills index,
+MCP server, auth.md. Only **one** qualifies for a DNS-AID SVCB record: the
+**real MCP server at `/mcp`**. Reasoning:
 
-2. Confirm DNSSEC is enabled on the zone (most registrars have a one-click
-   toggle) so resolvers can validate the record hasn't been tampered with.
+- DNS-AID's `alpn` param advertises *network-reachable agent protocols* —
+  something a remote client connects to. MCP is the only thing on this
+  domain that is that: a live, tested `POST /mcp` JSON-RPC endpoint (see
+  [`docs/mcp-server.md`](./mcp-server.md)).
+- **WebMCP is explicitly out of scope** — it's `navigator.modelContext`, a
+  browser-side JS API that runs inside a loaded page. There is no server for
+  DNS to point at; a remote DNS query can never "connect to" a browser API.
+  Advertising it via DNS-AID would be a category error, not just an
+  omission.
+- API catalog, OpenAPI, the agent skills index, and OAuth discovery aren't
+  independent protocols — they're HTTP metadata *about* the one real server,
+  already reachable once an agent has found the domain via the record below
+  (it points at the MCP Server Card, which is what actually cascades to
+  everything else).
 
-3. Verify with `dig` (note: many resolvers need `TYPE64` if they don't
-   recognize the `SVCB` mnemonic yet):
-   ```
-   dig SVCB _index._agents.dermascope.ai
-   dig TYPE64 _index._agents.dermascope.ai
-   ```
+### DNSSEC — already done, verified live
 
-This is still an early/draft spec — worth revisiting once it stabilizes
-before investing further than the one entry-point record above.
+```
+$ curl -s "https://cloudflare-dns.com/dns-query?name=dermascope.ai&type=DNSKEY" -H "accept: application/dns-json"
+→ "AD":true, 2 DNSKEY records (ECDSAP256SHA256)
+$ curl -s "https://cloudflare-dns.com/dns-query?name=dermascope.ai&type=DS" -H "accept: application/dns-json"
+→ "AD":true, DS record present at the .ai registry
+```
+The zone is fully signed and validating end-to-end. No action needed here —
+don't toggle anything in Cloudflare's DNSSEC settings; it would only risk
+breaking a chain that already works.
+
+### The two records
+
+Both target `dermascope.ai.` explicitly — **not** `.` — because the record
+owner names below (`_index._agents...`, `_mcp._agents...`) are synthetic
+discovery labels, not the real service hostname; per RFC 9460, `.` as
+TargetName means "the owner name IS the service," which would be wrong here.
+`h2` in `alpn` is verified live (`openssl s_client -alpn h2` against
+`dermascope.ai:443` → negotiated), not assumed — Cloudflare's edge does not
+advertise `h3` for this zone, so it's deliberately not claimed. `port=443`,
+the IPs from `nslookup -type=A` (`104.21.73.104`, `172.67.189.166`), are
+Cloudflare's shared anycast addresses for this proxied domain — real right
+now, but excluded as `ipv4hint`/`ipv6hint` since they rotate and the
+explicit hostname target already resolves them without a hint.
+
+**Record 1 — canonical entry point** (`_index._agents` is the label the
+draft names for eventual IANA registration — the primary, spec-preferred
+form):
+
+| Field | Value |
+|---|---|
+| Type | `SVCB` |
+| Name | `_index._agents.dermascope.ai` |
+| Priority | `1` |
+| Target | `dermascope.ai.` |
+| Value | `alpn="mcp,h2" port="443" well-known="mcp/server-card.json" mandatory="alpn,port"` |
+
+**Record 2 — protocol-scoped label** (the draft calls this form
+"redundant, as the protocol is in the alpn" of Record 1 — but it's the exact
+shape isitagentready.com's own check example uses, so it's published
+alongside Record 1 for compatibility, not instead of it — same real
+endpoint, same real capabilities, no new claim):
+
+| Field | Value |
+|---|---|
+| Type | `SVCB` |
+| Name | `_mcp._agents.dermascope.ai` |
+| Priority | `1` |
+| Target | `dermascope.ai.` |
+| Value | `alpn="mcp,h2" port="443" well-known="mcp/server-card.json" mandatory="alpn,port"` |
+
+`well-known="mcp/server-card.json"` is the value per the draft's own
+convention ("the .well-known can be assumed, so the value... could be
+`agent-card.json`") — it resolves to the real, already-live
+`https://dermascope.ai/.well-known/mcp/server-card.json`. `mandatory=alpn,port`
+follows the draft's Section 6.3 guidance: list only the params a client
+*must* understand to use the record at all (connecting needs alpn+port;
+`well-known` is a bonus a client can ignore without breaking the connection).
+
+### Adding these in Cloudflare
+
+Cloudflare's SVCB record schema is `name` / `type` / `ttl` / `data.priority`
+/ `data.target` / `data.value` — the "Value" column above maps directly to
+`data.value`. In the dashboard: DNS → Records → Add record → type `SVCB`,
+paste Name/Priority/Target as shown, and the `alpn=... port=... ...` string
+into the value field. TTL `3600` (or Cloudflare's "Auto") is fine either way.
+
+### Verify after adding
+
+```bash
+dig SVCB _index._agents.dermascope.ai
+dig SVCB _mcp._agents.dermascope.ai
+# or, if a resolver doesn't know the SVCB mnemonic yet:
+dig TYPE64 _index._agents.dermascope.ai
+```
+Then re-run the isitagentready.com DNS-AID check.
