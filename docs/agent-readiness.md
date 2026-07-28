@@ -150,6 +150,36 @@ If a re-raised finding keeps failing after live verification, suspect the
 checker's expectations (or a genuine architecture mismatch, as above)
 before assuming the implementation is wrong.
 
+## Web Bot Auth — not applicable, and here's why
+
+The finding (`"informational only"` per the checker's own wording) asks for
+a JWKS at `/.well-known/http-message-signatures-directory` so this site can
+sign its own outbound HTTP requests (RFC 9421 HTTP Message Signatures) and
+let receiving sites verify "this really is DermaScope.ai." This is the
+mirror image of every other check in this document — those are all about
+*incoming* requests to `dermascope.ai` being verifiable; this one is about
+*outbound* requests this site itself sends elsewhere.
+
+Checked every outbound HTTP call in `server.js` (`grep fetch\(`): there are
+exactly three. One (`appendToGoogleSheet`) is a pre-arranged webhook to this
+project's own Google Apps Script, already authenticated via a shared secret
+(`GOOGLE_SHEETS_SECRET`) — a different, adequate trust model for "two
+parties who already know each other," not the "prove your identity to an
+arbitrary site you're crawling for the first time" problem Web Bot Auth
+solves. The other two are loopback calls to `127.0.0.1` (the MCP tool
+handlers reaching this same server's own routes) — not outbound to the
+internet at all.
+
+**DermaScope.ai does not operate a crawler or bot that visits other
+websites.** Web Bot Auth is for entities like the AI crawlers this site's
+own `robots.txt` grants access to (GPTBot, ClaudeBot, etc.) — the sending
+side of that relationship, not the receiving side this site is actually on.
+Publishing a JWKS with no outbound signed request ever backing it would be
+exactly the fabricated-infrastructure pattern this document has refused
+everywhere else — a public key that verifies signatures on requests that
+are never sent. Not implemented; revisit only if this site ever adds real
+outbound crawling/bot behavior of its own.
+
 ## DNS for AI Discovery (DNS-AID) — the exact records, verified
 
 DNS-AID publishes discovery records under the domain's DNS zone. This
