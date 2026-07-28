@@ -94,29 +94,61 @@ response, not the static card). Full writeup:
 ## A note on stale (and repeated) findings
 
 The check `auth.md exists but agent_auth metadata was not found` was raised
-twice. Both times, live verification
+three times. Live verification
 (`curl https://dermascope.ai/.well-known/oauth-authorization-server`)
-confirmed the `agent_auth` block was already present and correct — not a
-deploy-timing fluke, since it stayed correct across two separate checks.
+confirmed the `agent_auth` block was already present each time — not a
+deploy-timing fluke. Two rounds of fixes chased field-name and
+document-structure theories (adding `register_uri`/`revocation_uri`
+aliases, then rewriting `/auth.md` to be self-contained). The check that
+finally stuck around — `No complete Auth.md registration method
+advertised` — turned out to have a real, different root cause underneath.
 
-The likely real cause: the checker's own "Fix" text names fields
-(`register_uri`, "credential types", "claim/revocation URLs") that don't
-match the actual auth.md spec's field names (verified against
-[github.com/workos/auth.md](https://github.com/workos/auth.md) —
-`identity_endpoint`, `identity_types_supported`, `revocation_endpoint`, no
-"credential type" concept at all). A checker doing a literal string search
-for its own suggested names would miss a spec-correct implementation using
-the real ones. Rather than keep re-verifying the same non-problem, `register_uri`
-and `revocation_uri` are now published as aliases of the real
-`identity_endpoint`/`revocation_endpoint` (same endpoints, two labels), and
-`credential_types_supported: ["client_secret"]` was added — accurate
-(service_auth's credential *is* a client_secret) and not previously stated
-explicitly. `claim_uri` is still absent: there's still no claim ceremony to
-link to (see the `auth.md` section above) — that's a real gap, not a
-labeling one, and won't be closed by renaming fields.
+**Root cause, found by reading the full canonical reference file**
+(`AUTH.md` in [github.com/workos/auth.md](https://github.com/workos/auth.md),
+fetched in full — not summarized) **rather than trusting earlier partial
+extracts:** this project's `service_auth` doesn't match the spec's
+`service_auth`. The real spec's `service_auth` means *"you know a human
+user's email, and need that human to complete a claim ceremony"* —
+`POST /agent/identity` with `{"type":"service_auth","login_hint":"<email>"}`,
+**no auth on the call itself**, and a response containing `claim_url`,
+`claim_token`, and a `claim` block (`user_code`, `verification_uri`, RFC
+8628 device-code style) that a signed-in human must confirm before any
+credential is issued.
+
+What this project actually built is different: `POST /agent/identity`
+requires a Bearer *initial access token* (an operator secret, not a human's
+email), takes no `login_hint`, and returns a `client_id`/`client_secret`
+immediately with no claim step. That's a real, legitimate mechanism — RFC
+7591 Dynamic Client Registration gated by an Initial Access Token — but it
+isn't the spec's `service_auth`, `identity_assertion`/ID-JAG, or
+`anonymous`. **All three of the spec's identity types model an agent acting
+on behalf of a human end user who must claim/confirm the registration.**
+This site's protected resource (`/api/admin/submissions`) has no end user
+in that sense at all — it's the operator's own tooling reading the
+operator's own data, with no delegation to model.
+
+**Decision: don't build a fake claim ceremony.** Making this check fully
+"complete" would mean adding this site's first-ever login system (an
+operator has to sign in somewhere to confirm a device-code) purely to
+satisfy a checker whose three recognized flows are all built for a
+delegation scenario that doesn't exist here. That's a substantial new
+feature — not a metadata fix — in service of modeling a human "claimant"
+who isn't actually part of this system. Building it would mean fabricating
+the very thing this whole document has repeatedly refused to fabricate:
+infrastructure that doesn't correspond to anything real. **Confirmed with
+the user, who chose to accept this specific check may not pass** rather
+than build it.
+
+What *was* fixed: `agent_auth.credential_types` (isitagentready.com's
+SKILL.md lists this exact key — this project had `credential_types_supported`
+only, which doesn't match). Both keys are now published (`credential_types`
+for exact-match, `credential_types_supported` for consistency with this
+document's other `*_supported` fields) — same real value either way:
+`["client_secret"]`.
 
 If a re-raised finding keeps failing after live verification, suspect the
-checker's expectations before assuming the implementation is wrong.
+checker's expectations (or a genuine architecture mismatch, as above)
+before assuming the implementation is wrong.
 
 ## DNS for AI Discovery (DNS-AID) — the exact records, verified
 

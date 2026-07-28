@@ -401,22 +401,43 @@ app.get('/.well-known/oauth-authorization-server', (_req, res) => {
     revocation_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post'],
     // auth.md (https://github.com/workos/auth.md) agent-registration extension.
     // `register_uri`/`identity_endpoint` are the same real endpoint under two
-    // names: the real spec (verified against github.com/workos/auth.md) calls
-    // it `identity_endpoint`; `register_uri` is kept alongside it as an alias
-    // since that's the literal name generic "does auth.md exist" checkers
-    // tend to look for. Both point at the one real POST /agent/identity route
-    // — this isn't two endpoints, just two labels for it.
-    // Only `service_auth` is listed under identity_types_supported: this site
-    // has no external identity provider and no device-code "claim" UI, so the
-    // richer identity_assertion / anonymous flows the spec describes aren't
-    // offered — advertising them would describe infrastructure that doesn't
-    // exist, the same reasoning documented in docs/agent-readiness.md. No
-    // claim_uri for the same reason: there is no claim ceremony to link to.
+    // names: the canonical spec (fetched in full from github.com/workos/AUTH.md,
+    // not summarized) calls it `identity_endpoint`; `register_uri` is kept
+    // alongside as an alias since that's the literal name generic "does
+    // auth.md exist" checkers tend to look for. Both point at the one real
+    // POST /agent/identity route — this isn't two endpoints, just two labels.
+    // `credential_types` matches the exact key name isitagentready.com's own
+    // auth-md SKILL.md lists; `credential_types_supported` is kept alongside
+    // for consistency with this document's other `*_supported` fields (both
+    // describe the same one real credential type: client_secret).
+    //
+    // IMPORTANT — `identity_types_supported: ['service_auth']` is honest about
+    // what endpoint exists (POST /agent/identity, gated by an operator-issued
+    // initial access token, returns a client_id/client_secret immediately),
+    // but does NOT match the canonical auth.md spec's actual `service_auth`
+    // shape: the real spec's service_auth takes a `login_hint` (a human
+    // user's email, no auth on the call itself) and requires a claim
+    // ceremony (`claim_url`/`claim_token`/a `claim` block with `user_code`+
+    // `verification_uri`, RFC 8628-style) where a signed-in human confirms a
+    // code before any credential is issued. All three of the spec's identity
+    // types (service_auth, identity_assertion/ID-JAG, anonymous) model an
+    // agent acting on behalf of a human end user who must claim/confirm the
+    // registration. This site has no end user in that sense — /api/admin is
+    // the operator's own tooling reading the operator's own data — and
+    // building a real claim ceremony would mean adding this site's first-ever
+    // login system just to satisfy an external checker's expectations for a
+    // scenario that doesn't apply here. Decision recorded in
+    // docs/agent-readiness.md: keep the real, working, gated-registration
+    // endpoint as-is; accept that the "complete registration method" check
+    // may not pass, rather than build a fake human-delegation flow with no
+    // real human delegator. No `claim_uri`/`events_supported` for the same
+    // reason — there is no claim ceremony or revocation-event stream to link.
     agent_auth: {
       skill: `${ISSUER}/auth.md`,
       identity_endpoint: `${ISSUER}/agent/identity`,
       register_uri: `${ISSUER}/agent/identity`,
       identity_types_supported: ['service_auth'],
+      credential_types: ['client_secret'],
       credential_types_supported: ['client_secret'],
       revocation_endpoint: `${ISSUER}/oauth/revoke`,
       revocation_uri: `${ISSUER}/oauth/revoke`,
