@@ -39,7 +39,7 @@ where.
 | MCP Server Card (SEP-2127) | `server.js` → `GET /.well-known/mcp/server-card.json`, `GET /mcp/server-card` |
 | AI Catalog (domain-level discovery, points at the card) | `server.js` → `GET /.well-known/ai-catalog.json` |
 | OpenID Provider Metadata (discovery-convention alias, not a claim of full OIDC) | `server.js` → `GET /.well-known/openid-configuration` |
-| Web Bot Auth directory (empty, honest — no outbound signing exists) | `server.js` → `GET /.well-known/http-message-signatures-directory` |
+| Web Bot Auth: real Ed25519 key, actually signs the one real outbound request | `server.js` → `GET /.well-known/http-message-signatures-directory`, `signOutboundRequest()` used by `appendToGoogleSheet` |
 
 All of the above describe **real** things: the real `/api/contact` and
 `/health` endpoints, and the real Early Access form action. Nothing here
@@ -233,47 +233,57 @@ If a re-raised finding keeps failing after live verification, suspect the
 checker's expectations (or a genuine architecture mismatch, as above)
 before assuming the implementation is wrong.
 
-## Web Bot Auth — declared empty, not faked
+## Web Bot Auth — a real key, actually used, not a placeholder
 
-`GET /.well-known/http-message-signatures-directory` publishes a JWKS
-naming the keys a site uses to sign its own outbound HTTP requests (RFC
-9421 HTTP Message Signatures, [draft-meunier-http-message-signatures-directory-05](https://www.ietf.org/archive/id/draft-meunier-http-message-signatures-directory-05.html)),
-so receiving sites can verify "this really is DermaScope.ai." This is the
-mirror image of every other check in this document — those are all about
-*incoming* requests to `dermascope.ai` being verifiable; this one is about
-*outbound* requests this site itself sends elsewhere.
+This started as an empty directory (`{"keys":[]}`) — an honest statement
+that this site didn't sign outbound requests. The user then asked for the
+real thing instead: generate a real key, sign a real outbound request with
+it, publish the matching public key — no unused keys, no fake metadata.
+That's what's implemented now.
 
-Checked every outbound HTTP call in `server.js` (`grep fetch\(`): there are
-exactly three. One (`appendToGoogleSheet`) is a pre-arranged webhook to this
-project's own Google Apps Script, already authenticated via a shared secret
-(`GOOGLE_SHEETS_SECRET`) — a different, adequate trust model for "two
-parties who already know each other," not the "prove your identity to an
-arbitrary site you're crawling for the first time" problem Web Bot Auth
-solves. The other two are loopback calls to `127.0.0.1` (the MCP tool
-handlers reaching this same server's own routes) — not outbound to the
-internet at all. **DermaScope.ai does not operate a crawler or bot that
-visits other websites** — nothing here signs outbound requests, so there's
-no real key to publish.
+**What signs, and why only that.** Checked every outbound HTTP call in
+`server.js`: exactly three. `appendToGoogleSheet`'s call to this project's
+own Google Apps Script webhook is the one real request to a third party —
+**that's the one that's signed.** The other two are loopback calls to
+`127.0.0.1` (the MCP tool handlers reaching this same server's own routes)
+— signing a request to yourself proves nothing to anyone, so those stay
+unsigned. Google's Apps Script doesn't verify Web Bot Auth signatures, but
+that's beside the point: the signature is real and independently
+verifiable regardless of whether today's one receiver checks it — the same
+way a site can correctly adopt a standard before every counterpart does.
 
-The path was still returning `200 text/html` (the SPA's catch-all —
-DermaScope.ai has no `/.well-known/http-message-signatures-directory`
-route, so every unmatched `GET` fell through to `index.html`), which the
-checker correctly read as "not JSON." Rather than leave that broken
-fallthrough, `server.js` now serves the honest answer directly: a
-well-formed, **empty** JWKS —
-```json
-{"keys":[]}
-```
-— with the exact media type the draft requires,
-`application/http-message-signatures-directory+json` (a JSON structured
-syntax suffix per RFC 6839, so generic JSON tooling — and, expected,
-the checker — parses it as JSON; deliberately not the generic
-`application/json` some check descriptions request, since the draft's
-requirement is a strict MUST for the specific type). `keys: []` is a valid
-JWKS declaring zero signing keys (RFC 7517 §5) — a true, complete
-statement of "this site doesn't sign outbound requests," not a stub or a
-fabricated key. Revisit with a real key entry only if this site ever adds
-real outbound crawling/bot behavior of its own.
+**The key.** A persistent Ed25519 keypair (`WEB_BOT_AUTH_PRIVATE_KEY_PEM`/
+`PUBLIC_KEY_PEM` in `.env.example`, same load-or-generate-ephemeral pattern
+as the OAuth signing key). The published JWKS entry's `kid` is computed as
+the actual RFC 7638 / RFC 8037 Appendix A.3 JWK thumbprint (SHA-256 over
+`{"crv":"Ed25519","kty":"OKP","x":"<x>"}`, built by hand in that exact
+member order — not `JSON.stringify`, whose key order isn't guaranteed to
+match) — not an arbitrary ID, so a receiver can compute it independently
+from the public key alone and confirm it matches.
+
+**The signature.** Built with the well-tested
+[`http-message-signatures`](https://www.npmjs.com/package/http-message-signatures)
+library (RFC 9421 canonicalization is genuinely easy to get subtly wrong by
+hand — this is the same reasoning that led to using `jsonwebtoken` instead
+of hand-rolled JWT signing elsewhere in this project), signing with Node's
+built-in `crypto.sign(null, data, key)` for Ed25519. Every required
+parameter from
+[draft-meunier-web-bot-auth-architecture-05](https://www.ietf.org/archive/id/draft-meunier-web-bot-auth-architecture-05.html)
+§4.2 is present: `created`, `expires` (5 minutes — well inside the spec's
+24h recommendation), `keyid` (the thumbprint above), `alg="ed25519"`,
+`tag="web-bot-auth"` (the literal required value), and a fresh 64-byte
+`nonce` per request. Covered components are `@authority` and the
+`Signature-Agent` dictionary member (`sig1="https://dermascope.ai"`) — the
+exact shape shown in the spec's own Appendix A.2.2 example.
+
+**Verified, not assumed.** Two standalone tests before wiring this in:
+(1) sign with a fresh keypair, verify with only the public key, using the
+identical library calls and parameter shapes used in `server.js` — passed;
+(2) sign a real request, send it over a real `fetch()` to a real local HTTP
+listener, read back exactly what the receiver saw on the wire, and verify
+*that* — confirming `fetch()`'s own header serialization doesn't corrupt
+anything — passed. Full project regression (every other route) confirmed
+no breakage.
 
 ## DNS for AI Discovery (DNS-AID) — the exact records, verified
 

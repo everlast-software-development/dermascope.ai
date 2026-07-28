@@ -7,6 +7,7 @@ const express    = require('express');
 const cors       = require('cors');
 const nodemailer = require('nodemailer');
 const jwt        = require('jsonwebtoken');
+const { httpbis: httpMessageSignatures } = require('http-message-signatures');
 
 // Load .env from the server folder regardless of the working directory (so it
 // works whether started from repo root `npm start` or from server/). In Railway
@@ -79,9 +80,21 @@ async function appendToGoogleSheet(payload, timestampIso) {
   const timeout = setTimeout(() => controller.abort(), 8000);
 
   try {
+    // Signed per Web Bot Auth (draft-meunier-web-bot-auth-architecture) —
+    // this is the one real outbound third-party request this server makes,
+    // so it's the one real thing WEB_BOT_AUTH's published key backs. A
+    // signing failure here must never block the append itself (Sheets is
+    // already best-effort), so it's wrapped separately.
+    let headers = { 'Content-Type': 'application/json' };
+    try {
+      headers = await signOutboundRequest('POST', SHEETS_WEBAPP_URL, headers);
+    } catch (err) {
+      console.error('Failed to sign outbound Google Sheets request (sending unsigned):', err.message);
+    }
+
     const res = await fetch(SHEETS_WEBAPP_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       redirect: 'follow', // Apps Script Web Apps answer via a 302 to script.googleusercontent.com
       signal: controller.signal,
       body: JSON.stringify({
@@ -831,23 +844,98 @@ app.get('/.well-known/openid-configuration', (_req, res) => {
 });
 
 // ─── HTTP Message Signatures Directory (Web Bot Auth) ────────────────────────
-// draft-meunier-http-message-signatures-directory-05: a JWKS naming the keys
-// this site uses to SIGN ITS OWN OUTBOUND requests, so a receiving site can
-// verify "this really is dermascope.ai" — the opposite direction from
-// SIGNING_PUBLIC_JWK above (which verifies tokens THIS site issues to
-// callers). This site doesn't sign outbound requests (checked every fetch()
-// in this file: one pre-arranged, already-secret-authenticated Google Sheets
-// webhook, plus two loopback calls — no outbound crawler/bot traffic of the
-// kind Web Bot Auth exists for; see docs/agent-readiness.md). Rather than
-// fall through to the SPA's HTML 200 (a real, previously-flagged bug —
-// unmatched GET requests hit the catch-all below and got index.html), publish
-// the honest answer: a well-formed, empty directory. `keys: []` is valid
-// per the JWKS format this draft reuses (RFC 7517 §5) — it declares zero
-// signing keys, not a broken/missing endpoint. Revisit if this site ever
-// adds real outbound bot/crawler behavior of its own.
+// draft-meunier-http-message-signatures-directory-05 + draft-meunier-web-bot-
+// auth-architecture-05: a JWKS naming the key this site uses to sign its own
+// outbound HTTP requests (RFC 9421 HTTP Message Signatures), so a receiving
+// site can verify "this really is dermascope.ai" — the opposite direction
+// from SIGNING_PUBLIC_JWK above (which verifies tokens THIS site issues to
+// callers). This key is genuinely used: every outbound call this server makes
+// to a third party (the Google Sheets webhook — see appendToGoogleSheet) is
+// signed with it. The two loopback calls to 127.0.0.1 elsewhere in this file
+// are internal, not outbound to any third party, and are deliberately left
+// unsigned — signing a request to yourself proves nothing to anyone.
+//
+// Key persistence: same tradeoff as OAUTH_SIGNING_*_KEY_PEM above. Set
+// WEB_BOT_AUTH_PRIVATE_KEY_PEM / WEB_BOT_AUTH_PUBLIC_KEY_PEM (see
+// .env.example) so the key — and therefore the `kid` published below —
+// survives restarts; otherwise every outbound signature becomes unverifiable
+// (against the currently-published directory) the moment the process
+// restarts, since a fresh Ed25519 keypair is generated each time.
+function loadOrGenerateWebBotAuthKey() {
+  const privPem = process.env.WEB_BOT_AUTH_PRIVATE_KEY_PEM;
+  const pubPem  = process.env.WEB_BOT_AUTH_PUBLIC_KEY_PEM;
+  if (privPem && pubPem) {
+    try {
+      const privateKey = crypto.createPrivateKey(privPem.replace(/\\n/g, '\n'));
+      const publicKey  = crypto.createPublicKey(pubPem.replace(/\\n/g, '\n'));
+      console.log('  ✓  Web Bot Auth signing key loaded from environment (persists across restarts)');
+      return { privateKey, publicKey };
+    } catch (err) {
+      console.error('Failed to parse WEB_BOT_AUTH_*_KEY_PEM, falling back to an ephemeral key:', err.message);
+    }
+  }
+  console.log('  ℹ  WEB_BOT_AUTH_*_KEY_PEM not set — using an ephemeral Web Bot Auth key for this ' +
+              'process. Outbound request signatures stop matching the published directory after the ' +
+              'next restart. Set these in production — see .env.example.');
+  return crypto.generateKeyPairSync('ed25519');
+}
+const { privateKey: WBA_PRIVATE_KEY, publicKey: WBA_PUBLIC_KEY } = loadOrGenerateWebBotAuthKey();
+
+// RFC 8037 Appendix A.3 / RFC 7638: the JWK thumbprint for an OKP (Ed25519)
+// key is SHA-256 over the JSON object containing exactly {crv, kty, x}, with
+// members in that lexicographic order and no extra whitespace — order and
+// exact member set matter, so this is built by hand rather than via
+// JSON.stringify (whose key order isn't guaranteed to match).
+const WBA_JWK = WBA_PUBLIC_KEY.export({ format: 'jwk' }); // { kty: 'OKP', crv: 'Ed25519', x: '...' }
+const WBA_KID = crypto
+  .createHash('sha256')
+  .update(`{"crv":"${WBA_JWK.crv}","kty":"${WBA_JWK.kty}","x":"${WBA_JWK.x}"}`, 'utf8')
+  .digest('base64url');
+const WBA_KEY_NBF = Math.floor(Date.now() / 1000);
+const WBA_KEY_EXP = WBA_KEY_NBF + 60 * 60 * 24 * 365; // 1 year key-rotation window
+const WBA_SIG_LABEL = 'sig1'; // the Signature/Signature-Input dictionary key used on every signed outbound request
+
 app.get('/.well-known/http-message-signatures-directory', (_req, res) => {
-  res.type('application/http-message-signatures-directory+json').json({ keys: [] });
+  res.type('application/http-message-signatures-directory+json').json({
+    keys: [{ ...WBA_JWK, kid: WBA_KID, use: 'sig', nbf: WBA_KEY_NBF, exp: WBA_KEY_EXP }],
+  });
 });
+
+// Signs an outbound request per draft-meunier-web-bot-auth-architecture-05
+// §4.2: covers @authority and the Signature-Agent dictionary member (so a
+// verifier can find our directory without a separate lookup convention), and
+// includes every parameter the spec marks required — created, keyid, alg,
+// expires, tag="web-bot-auth" — plus a fresh per-request nonce. Returns the
+// full header set to merge into the real outbound request; does not mutate
+// anything itself, so a signing failure can never break the caller's request.
+async function signOutboundRequest(method, url, baseHeaders) {
+  const created = new Date();
+  const expires = new Date(created.getTime() + 5 * 60 * 1000); // 5 minutes — well inside the spec's 24h recommendation
+  const nonce = crypto.randomBytes(64).toString('base64url');
+
+  const message = {
+    method,
+    url,
+    headers: { ...baseHeaders, 'signature-agent': `${WBA_SIG_LABEL}="${ISSUER}"` },
+  };
+
+  const signed = await httpMessageSignatures.signMessage(
+    {
+      key: {
+        id: WBA_KID,
+        alg: 'ed25519',
+        sign: async (data) => crypto.sign(null, data, WBA_PRIVATE_KEY),
+      },
+      name: WBA_SIG_LABEL,
+      fields: ['@authority', `"signature-agent";key="${WBA_SIG_LABEL}"`],
+      params: ['created', 'keyid', 'alg', 'expires', 'nonce', 'tag'],
+      paramValues: { created, expires, nonce, tag: 'web-bot-auth' },
+    },
+    message,
+  );
+
+  return signed.headers;
+}
 
 // RFC 6750 bearer-token check for the admin API.
 function requireAdminAuth(req, res, next) {
