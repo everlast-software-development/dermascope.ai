@@ -721,6 +721,18 @@ app.post('/oauth/revoke', (req, res) => {
   res.status(200).end();
 });
 
+// Shared by both discovery documents below so issuer/token_endpoint/jwks_uri
+// are structurally guaranteed to match — not just copy-pasted the same
+// string twice.
+const TOKEN_ENDPOINT = `${ISSUER}/oauth/token`;
+const JWKS_URI       = `${ISSUER}/.well-known/jwks.json`;
+const GRANT_TYPES_SUPPORTED = [
+  'client_credentials',
+  'urn:workos:agent-auth:grant-type:claim',
+  'urn:ietf:params:oauth:grant-type:jwt-bearer',
+];
+const TOKEN_ENDPOINT_AUTH_METHODS_SUPPORTED = ['client_secret_basic', 'client_secret_post'];
+
 // RFC 8414. No authorization_endpoint / response_types_supported: there is
 // still no browser-redirect OAuth flow — the "human in the loop" here is the
 // claim ceremony below (its own bespoke device-code-shaped protocol), not a
@@ -728,17 +740,13 @@ app.post('/oauth/revoke', (req, res) => {
 app.get('/.well-known/oauth-authorization-server', (_req, res) => {
   res.type('application/json').json({
     issuer: ISSUER,
-    token_endpoint: `${ISSUER}/oauth/token`,
-    token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post'],
-    jwks_uri: `${ISSUER}/.well-known/jwks.json`,
-    grant_types_supported: [
-      'client_credentials',
-      'urn:workos:agent-auth:grant-type:claim',
-      'urn:ietf:params:oauth:grant-type:jwt-bearer',
-    ],
+    token_endpoint: TOKEN_ENDPOINT,
+    token_endpoint_auth_methods_supported: TOKEN_ENDPOINT_AUTH_METHODS_SUPPORTED,
+    jwks_uri: JWKS_URI,
+    grant_types_supported: GRANT_TYPES_SUPPORTED,
     scopes_supported: [ADMIN_SCOPE],
     revocation_endpoint: `${ISSUER}/oauth/revoke`,
-    revocation_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post'],
+    revocation_endpoint_auth_methods_supported: TOKEN_ENDPOINT_AUTH_METHODS_SUPPORTED,
     // auth.md (https://github.com/workos/auth.md) agent-registration
     // extension — TWO real, working identity types, both gated by the same
     // claim ceremony before anything sensitive is granted:
@@ -787,6 +795,39 @@ app.get('/.well-known/oauth-protected-resource', (_req, res) => {
 
 app.get('/.well-known/jwks.json', (_req, res) => {
   res.type('application/json').json({ keys: [SIGNING_PUBLIC_JWK] });
+});
+
+// OpenID Provider Metadata (OpenID Connect Discovery 1.0) — NOT a claim that
+// this site is a full OpenID Connect Provider. There is no browser login, no
+// ID token, no UserInfo endpoint, and no "openid" scope: none of the fields
+// below describe user authentication. This document exists because some
+// tooling checks /.well-known/openid-configuration by convention before
+// falling back to /.well-known/oauth-authorization-server (RFC 8414) — so it
+// mirrors that same real metadata under the other well-known name, built
+// from the identical ISSUER/TOKEN_ENDPOINT/JWKS_URI constants, rather than
+// duplicating (and risking drifting from) those values.
+// authorization_endpoint is omitted and response_types_supported is []: for
+// the same reason as oauth-authorization-server above, there's no
+// browser-redirect flow to advertise one for. subject_types_supported:
+// ["public"] and id_token_signing_alg_values_supported: ["RS256"] are
+// included because OIDC Discovery lists them as required fields, and are
+// honest about what's real (this site's JWTs' `sub` is a direct, non-
+// pairwise identifier, and RS256 is the actual signing algorithm) without
+// implying ID-token issuance that doesn't happen.
+app.get('/.well-known/openid-configuration', (_req, res) => {
+  res.type('application/json').json({
+    issuer: ISSUER,
+    token_endpoint: TOKEN_ENDPOINT,
+    token_endpoint_auth_methods_supported: TOKEN_ENDPOINT_AUTH_METHODS_SUPPORTED,
+    jwks_uri: JWKS_URI,
+    grant_types_supported: GRANT_TYPES_SUPPORTED,
+    scopes_supported: [ADMIN_SCOPE],
+    response_types_supported: [],
+    subject_types_supported: ['public'],
+    id_token_signing_alg_values_supported: ['RS256'],
+    revocation_endpoint: `${ISSUER}/oauth/revoke`,
+    revocation_endpoint_auth_methods_supported: TOKEN_ENDPOINT_AUTH_METHODS_SUPPORTED,
+  });
 });
 
 // ─── HTTP Message Signatures Directory (Web Bot Auth) ────────────────────────

@@ -38,6 +38,8 @@ where.
 | Real MCP server (Streamable HTTP, 2 tools) | `server.js` → `POST /mcp` — see [`docs/mcp-server.md`](./mcp-server.md) |
 | MCP Server Card (SEP-2127) | `server.js` → `GET /.well-known/mcp/server-card.json`, `GET /mcp/server-card` |
 | AI Catalog (domain-level discovery, points at the card) | `server.js` → `GET /.well-known/ai-catalog.json` |
+| OpenID Provider Metadata (discovery-convention alias, not a claim of full OIDC) | `server.js` → `GET /.well-known/openid-configuration` |
+| Web Bot Auth directory (empty, honest — no outbound signing exists) | `server.js` → `GET /.well-known/http-message-signatures-directory` |
 
 All of the above describe **real** things: the real `/api/contact` and
 `/health` endpoints, and the real Early Access form action. Nothing here
@@ -138,6 +140,32 @@ no `serverInfo`/`transport`/`capabilities` fields at the top level the way
 the audit's "Fix" text implied; those belong to the live `initialize`
 response, not the static card). Full writeup:
 [`docs/mcp-server.md`](./mcp-server.md).
+
+## `/.well-known/openid-configuration` — a discovery alias, not a claim of full OIDC
+
+This site is an OAuth 2.0 authorization server, not an OpenID Connect
+Provider — there's no browser login, no ID token, no UserInfo endpoint, no
+"openid" scope. Strict OIDC Discovery requires fields (`authorization_endpoint`
+unconditionally, plus `response_types_supported`, `subject_types_supported`,
+`id_token_signing_alg_values_supported`) that describe machinery this site
+doesn't have.
+
+The endpoint exists anyway because some tooling checks
+`/.well-known/openid-configuration` by convention before falling back to
+`/.well-known/oauth-authorization-server` (RFC 8414) — so it's published as
+an honest *alias*: `issuer`, `token_endpoint`, `jwks_uri`,
+`grant_types_supported`, and `token_endpoint_auth_methods_supported` are
+built from the exact same `ISSUER`/`TOKEN_ENDPOINT`/`JWKS_URI` constants the
+RFC 8414 document uses (`server.js`), so the two can never drift apart —
+verified live that both return byte-identical `issuer`/`jwks_uri` values.
+`authorization_endpoint` stays omitted (same reasoning as the RFC 8414
+document: no browser-redirect flow exists to point one at) and
+`response_types_supported` is `[]` rather than fabricating `"code"` support
+that isn't real. `subject_types_supported: ["public"]` and
+`id_token_signing_alg_values_supported: ["RS256"]` are included to satisfy
+OIDC Discovery's schema, and are true statements about this site's real JWTs
+(non-pairwise `sub`, RS256 signing) — without claiming those JWTs are OIDC
+ID tokens, which they aren't.
 
 ## A note on stale (and repeated) findings
 
