@@ -197,12 +197,14 @@ function BeforeAfter() {
           src="/after.webp"
           alt="Follow-up visit — after"
           draggable={false}
+          loading="lazy"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
         />
         <img
           src="/before.webp"
           alt="Baseline visit — before"
           draggable={false}
+          loading="lazy"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', clipPath: `inset(0 ${100 - slider}% 0 0)` }}
         />
         <div

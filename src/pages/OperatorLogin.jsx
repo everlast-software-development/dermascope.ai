@@ -60,7 +60,7 @@ export default function OperatorLogin() {
           boxShadow: '0 30px 70px -24px rgba(0,0,0,0.5)',
         }}
       >
-        <img src="/logo.webp" alt="DermaScope.ai" style={{ height: 30, filter: 'brightness(0) invert(1)', display: 'block', margin: '0 auto 28px' }} />
+        <img src="/logo.webp" alt="DermaScope.ai" width={509} height={110} style={{ height: 30, width: 'auto', filter: 'brightness(0) invert(1)', display: 'block', margin: '0 auto 28px' }} />
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#ffffff', textAlign: 'center' }}>
           Operator sign-in
         </h1>

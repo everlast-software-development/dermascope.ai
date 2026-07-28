@@ -111,7 +111,7 @@ export default function OperatorClaim() {
           textAlign: 'center',
         }}
       >
-        <img src="/logo.webp" alt="DermaScope.ai" style={{ height: 30, filter: 'brightness(0) invert(1)', display: 'block', margin: '0 auto 28px' }} />
+        <img src="/logo.webp" alt="DermaScope.ai" width={509} height={110} style={{ height: 30, width: 'auto', filter: 'brightness(0) invert(1)', display: 'block', margin: '0 auto 28px' }} />
 
         {phase === 'loading' && (
           <p style={{ color: 'rgba(230,245,248,0.72)', fontSize: 14 }}>Loading…</p>

@@ -1642,7 +1642,21 @@ if (fs.existsSync(distPath)) {
       .send(markdown);
   });
 
-  app.use(express.static(distPath));
+  app.use(
+    express.static(distPath, {
+      setHeaders: (res, filePath) => {
+        // Vite content-hashes everything under /assets/ (filename changes on any
+        // content change), so those can be cached forever. Everything else copied
+        // straight from public/ (images, fonts, favicon) keeps a shorter cache
+        // since a same-name file can legitimately change on a future deploy.
+        const isHashedAsset = path.basename(path.dirname(filePath)) === 'assets';
+        res.setHeader(
+          'Cache-Control',
+          isHashedAsset ? 'public, max-age=31536000, immutable' : 'public, max-age=2592000',
+        );
+      },
+    }),
+  );
   app.get('*', (_req, res) => res.sendFile(path.join(distPath, 'index.html')));
   console.log('  ✓  Serving frontend build from /dist');
 } else {

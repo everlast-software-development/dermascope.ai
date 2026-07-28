@@ -1,10 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Sparkles, X } from 'lucide-react'
-import EarlyAccessForm from './EarlyAccessForm'
 import SectionSubtitle from './SectionSubtitle'
 import { useResponsive } from '../hooks/useResponsive'
 import './FloatingEarlyAccess.css'
+
+// The form (and its country/phone-input dependency) is only needed once the
+// drawer is actually opened, so it's fetched on demand rather than bundled
+// into the initial page load.
+const EarlyAccessForm = lazy(() => import('./EarlyAccessForm'))
 
 // Persistent glass CTA (left, vertically centered on desktop/tablet; bottom-center
 // on phones) that opens the existing Join Early Access form inside a right-side
@@ -197,7 +201,9 @@ export default function FloatingEarlyAccess() {
                   padding: isMobile ? '10px 22px 30px' : '12px 32px 36px',
                 }}
               >
-                <EarlyAccessForm onSuccess={() => {}} />
+                <Suspense fallback={null}>
+                  <EarlyAccessForm onSuccess={() => {}} />
+                </Suspense>
               </div>
             </motion.aside>
           </>

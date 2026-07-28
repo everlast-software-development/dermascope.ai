@@ -112,7 +112,35 @@ function OrbitDot({ angle }) {
   )
 }
 
+const POPPINS_HREF =
+  'https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&display=swap'
+
+// Loads the Poppins stylesheet the same non-blocking way as index.html's Outfit
+// link (preload, then swap media to "all" once ready) instead of the render-
+// blocking @import this replaced. Guarded so remounting Hero never double-injects.
+function usePoppinsFont() {
+  useEffect(() => {
+    if (document.getElementById('poppins-font-stylesheet')) return
+    const preload = document.createElement('link')
+    preload.rel = 'preload'
+    preload.as = 'style'
+    preload.href = POPPINS_HREF
+    document.head.appendChild(preload)
+
+    const stylesheet = document.createElement('link')
+    stylesheet.id = 'poppins-font-stylesheet'
+    stylesheet.rel = 'stylesheet'
+    stylesheet.href = POPPINS_HREF
+    stylesheet.media = 'print'
+    stylesheet.onload = () => {
+      stylesheet.media = 'all'
+    }
+    document.head.appendChild(stylesheet)
+  }, [])
+}
+
 export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed = 38 }) {
+  usePoppinsFont()
   const { isMobile, isTablet } = useResponsive()
   const stacked = isMobile || isTablet // phones + tablets drop the desktop's full-height column
 
@@ -225,7 +253,7 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
       {/* Nav — fixed so it sticks across the whole page */}
       <nav style={{ position: 'fixed', top: scrolled ? 12 : 18, left: '50%', transform: 'translateX(-50%)', width: isMobile ? 'calc(100% - 40px)' : isTablet ? 'calc(100% - 64px)' : 'min(1240px, calc(100% - 96px))', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, padding: stacked ? '9px 12px 9px 18px' : '10px 14px 10px 22px', borderRadius: 999, background: scrolled ? 'rgba(255,255,255,0.92)' : 'linear-gradient(90deg, rgba(255,255,255,0.14), rgba(255,255,255,0.06))', border: scrolled ? '1px solid rgba(15,61,68,0.12)' : '1px solid rgba(255,255,255,0.16)', backdropFilter: 'blur(14px)', boxShadow: scrolled ? '0 12px 34px rgba(0,20,24,0.16)' : '0 10px 30px rgba(0,20,24,0.25)', zIndex: 100, transition: 'top .35s ease, width .35s ease, box-shadow .35s ease, background .35s ease, border-color .35s ease' }}>
         <a href="#top" aria-label="DermaScope.ai home" style={{ display: 'flex', alignItems: 'center' }}>
-          <img src="/logo.webp" alt="DermaScope.ai" style={{ height: isMobile ? 28 : 34, width: 'auto', display: 'block', filter: scrolled ? 'none' : 'brightness(0) invert(1)', transition: 'filter .35s ease' }} />
+          <img src="/logo.webp" alt="DermaScope.ai" width={509} height={110} style={{ height: isMobile ? 28 : 34, width: 'auto', display: 'block', filter: scrolled ? 'none' : 'brightness(0) invert(1)', transition: 'filter .35s ease' }} />
         </a>
 
         {/* Desktop inline links */}
@@ -389,6 +417,9 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
               <img
                 src="/hero-mockup.webp"
                 alt="DermaScope capture angles app screen"
+                fetchPriority="high"
+                width={1089}
+                height={1560}
                 style={{ height: '96%', maxHeight: 780, width: 'auto', position: 'relative', zIndex: 2, filter: 'drop-shadow(0 40px 60px rgba(0,15,18,0.45))' }}
               />
 
@@ -407,6 +438,9 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
               <img
                 src="/hero-mockup.webp"
                 alt="DermaScope capture angles app screen"
+                fetchPriority="high"
+                width={1089}
+                height={1560}
                 style={{ width: 'min(340px, 44vw)', height: 'auto', maxWidth: '100%', position: 'relative', zIndex: 2, filter: 'drop-shadow(0 30px 52px rgba(0,15,18,0.45))' }}
               />
               {floatingCards(0.88)}
@@ -419,6 +453,9 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
               <img
                 src="/hero-mockup.webp"
                 alt="DermaScope capture angles app screen"
+                fetchPriority="high"
+                width={1089}
+                height={1560}
                 style={{ width: 'min(300px, 80vw)', height: 'auto', maxWidth: '100%', position: 'relative', zIndex: 2, filter: 'drop-shadow(0 26px 44px rgba(0,15,18,0.45))' }}
               />
               {floatingCards(0.7)}

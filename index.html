@@ -12,10 +12,30 @@
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Non-blocking font stylesheet: preload it, then swap its media to "all"
+         once loaded, so it never blocks first paint. Same font/weights/display
+         as before — noscript keeps the render-blocking fallback for JS-off. -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+    />
     <link
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
+    <!-- LCP element: the hero mockup image is discovered late by the browser
+         (it's rendered by React, not present in the initial HTML), so preload
+         it directly and mark it high priority. -->
+    <link rel="preload" as="image" href="/hero-mockup.webp" fetchpriority="high" />
   </head>
   <body>
     <div id="root"></div>

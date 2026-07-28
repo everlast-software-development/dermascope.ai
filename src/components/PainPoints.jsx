@@ -93,6 +93,7 @@ function StackCard({ item, index, total, isLast, isMobile, isTablet }) {
             <img
               src={item.image}
               alt={item.title}
+              loading="lazy"
               style={{
                 position: 'absolute',
                 inset: 0,
@@ -299,6 +300,7 @@ export default function PainPoints() {
                 <img
                   src="/mobile_mockup_home.webp"
                   alt="DermaScope.ai mobile app"
+                  loading="lazy"
                   className="ds-why-phone-img"
                   style={
                     isSmall

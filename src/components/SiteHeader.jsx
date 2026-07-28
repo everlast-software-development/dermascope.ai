@@ -59,7 +59,7 @@ export default function SiteHeader() {
         }}
       >
         <Link to="/" aria-label="DermaScope.ai home" style={{ display: 'flex', alignItems: 'center' }}>
-          <img src="/logo.webp" alt="DermaScope.ai" style={{ height: isMobile ? 28 : 34, width: 'auto', display: 'block' }} />
+          <img src="/logo.webp" alt="DermaScope.ai" width={509} height={110} style={{ height: isMobile ? 28 : 34, width: 'auto', display: 'block' }} />
         </Link>
 
         {!stacked && (
