@@ -789,6 +789,25 @@ app.get('/.well-known/jwks.json', (_req, res) => {
   res.type('application/json').json({ keys: [SIGNING_PUBLIC_JWK] });
 });
 
+// ─── HTTP Message Signatures Directory (Web Bot Auth) ────────────────────────
+// draft-meunier-http-message-signatures-directory-05: a JWKS naming the keys
+// this site uses to SIGN ITS OWN OUTBOUND requests, so a receiving site can
+// verify "this really is dermascope.ai" — the opposite direction from
+// SIGNING_PUBLIC_JWK above (which verifies tokens THIS site issues to
+// callers). This site doesn't sign outbound requests (checked every fetch()
+// in this file: one pre-arranged, already-secret-authenticated Google Sheets
+// webhook, plus two loopback calls — no outbound crawler/bot traffic of the
+// kind Web Bot Auth exists for; see docs/agent-readiness.md). Rather than
+// fall through to the SPA's HTML 200 (a real, previously-flagged bug —
+// unmatched GET requests hit the catch-all below and got index.html), publish
+// the honest answer: a well-formed, empty directory. `keys: []` is valid
+// per the JWKS format this draft reuses (RFC 7517 §5) — it declares zero
+// signing keys, not a broken/missing endpoint. Revisit if this site ever
+// adds real outbound bot/crawler behavior of its own.
+app.get('/.well-known/http-message-signatures-directory', (_req, res) => {
+  res.type('application/http-message-signatures-directory+json').json({ keys: [] });
+});
+
 // RFC 6750 bearer-token check for the admin API.
 function requireAdminAuth(req, res, next) {
   const [scheme, token] = (req.headers.authorization || '').split(' ');

@@ -205,12 +205,12 @@ If a re-raised finding keeps failing after live verification, suspect the
 checker's expectations (or a genuine architecture mismatch, as above)
 before assuming the implementation is wrong.
 
-## Web Bot Auth — not applicable, and here's why
+## Web Bot Auth — declared empty, not faked
 
-The finding (`"informational only"` per the checker's own wording) asks for
-a JWKS at `/.well-known/http-message-signatures-directory` so this site can
-sign its own outbound HTTP requests (RFC 9421 HTTP Message Signatures) and
-let receiving sites verify "this really is DermaScope.ai." This is the
+`GET /.well-known/http-message-signatures-directory` publishes a JWKS
+naming the keys a site uses to sign its own outbound HTTP requests (RFC
+9421 HTTP Message Signatures, [draft-meunier-http-message-signatures-directory-05](https://www.ietf.org/archive/id/draft-meunier-http-message-signatures-directory-05.html)),
+so receiving sites can verify "this really is DermaScope.ai." This is the
 mirror image of every other check in this document — those are all about
 *incoming* requests to `dermascope.ai` being verifiable; this one is about
 *outbound* requests this site itself sends elsewhere.
@@ -223,17 +223,29 @@ parties who already know each other," not the "prove your identity to an
 arbitrary site you're crawling for the first time" problem Web Bot Auth
 solves. The other two are loopback calls to `127.0.0.1` (the MCP tool
 handlers reaching this same server's own routes) — not outbound to the
-internet at all.
+internet at all. **DermaScope.ai does not operate a crawler or bot that
+visits other websites** — nothing here signs outbound requests, so there's
+no real key to publish.
 
-**DermaScope.ai does not operate a crawler or bot that visits other
-websites.** Web Bot Auth is for entities like the AI crawlers this site's
-own `robots.txt` grants access to (GPTBot, ClaudeBot, etc.) — the sending
-side of that relationship, not the receiving side this site is actually on.
-Publishing a JWKS with no outbound signed request ever backing it would be
-exactly the fabricated-infrastructure pattern this document has refused
-everywhere else — a public key that verifies signatures on requests that
-are never sent. Not implemented; revisit only if this site ever adds real
-outbound crawling/bot behavior of its own.
+The path was still returning `200 text/html` (the SPA's catch-all —
+DermaScope.ai has no `/.well-known/http-message-signatures-directory`
+route, so every unmatched `GET` fell through to `index.html`), which the
+checker correctly read as "not JSON." Rather than leave that broken
+fallthrough, `server.js` now serves the honest answer directly: a
+well-formed, **empty** JWKS —
+```json
+{"keys":[]}
+```
+— with the exact media type the draft requires,
+`application/http-message-signatures-directory+json` (a JSON structured
+syntax suffix per RFC 6839, so generic JSON tooling — and, expected,
+the checker — parses it as JSON; deliberately not the generic
+`application/json` some check descriptions request, since the draft's
+requirement is a strict MUST for the specific type). `keys: []` is a valid
+JWKS declaring zero signing keys (RFC 7517 §5) — a true, complete
+statement of "this site doesn't sign outbound requests," not a stub or a
+fabricated key. Revisit with a real key entry only if this site ever adds
+real outbound crawling/bot behavior of its own.
 
 ## DNS for AI Discovery (DNS-AID) — the exact records, verified
 
