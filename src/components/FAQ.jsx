@@ -136,6 +136,7 @@ export default function FAQ() {
   return (
     <section
       id="faq"
+      aria-label="Frequently asked questions"
       style={{
         ...section,
         // Compact top padding; generous bottom leading into the footer.

@@ -290,7 +290,7 @@ export default function HowItWorks() {
     // paired with its own image directly beneath it.
     if (reduce) {
       return (
-        <section id="how" ref={sectionRef} style={{ ...section, padding: isMobile ? '64px 20px 72px' : '84px 40px 96px' }}>
+        <section id="how" aria-label="How it works" ref={sectionRef} style={{ ...section, padding: isMobile ? '64px 20px 72px' : '84px 40px 96px' }}>
           <div style={{ position: 'relative', maxWidth: isTablet ? 680 : 520, margin: '0 auto' }}>
             <div style={{ marginBottom: 36 }}>
               <SectionSubtitle label="How It Works" tone="dark" />
@@ -323,7 +323,7 @@ export default function HowItWorks() {
     // Guided scroll-lock (same storytelling as desktop): pin the section and
     // advance one step per swipe; release to the next section after step 4.
     return (
-      <section id="how" ref={sectionRef} style={{ ...section, padding: 0 }}>
+      <section id="how" aria-label="How it works" ref={sectionRef} style={{ ...section, padding: 0 }}>
         <div
           ref={mobPinRef}
           style={{
@@ -466,6 +466,7 @@ export default function HowItWorks() {
   return (
     <section
       id="how"
+      aria-label="How it works"
       ref={sectionRef}
       style={{ ...section, padding: pinned ? 0 : isMobile ? '64px 20px' : isTablet ? '80px 32px' : '110px 48px' }}
     >
@@ -528,7 +529,17 @@ export default function HowItWorks() {
                 return (
                   <div
                     key={s.title}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Go to step ${i + 1}: ${s.title}`}
+                    aria-current={active ? 'step' : undefined}
                     onClick={() => jump(i)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        jump(i)
+                      }
+                    }}
                     style={{
                       display: 'flex',
                       gap: 22,

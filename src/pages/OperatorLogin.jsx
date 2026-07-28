@@ -37,7 +37,7 @@ export default function OperatorLogin() {
   }
 
   return (
-    <div
+    <main
       style={{
         minHeight: '100vh',
         display: 'flex',
@@ -71,6 +71,7 @@ export default function OperatorLogin() {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <input
             type="password"
+            aria-label="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
@@ -109,6 +110,6 @@ export default function OperatorLogin() {
           </button>
         </form>
       </div>
-    </div>
+    </main>
   )
 }

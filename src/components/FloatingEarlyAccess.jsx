@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Sparkles, X } from 'lucide-react'
 import EarlyAccessForm from './EarlyAccessForm'
@@ -12,8 +12,9 @@ import './FloatingEarlyAccess.css'
 export default function FloatingEarlyAccess() {
   const [open, setOpen] = useState(false)
   const { isMobile, isTablet } = useResponsive()
+  const closeRef = useRef(null)
 
-  // Close on Escape + lock body scroll while the drawer is open.
+  // Close on Escape + lock body scroll + move focus into the drawer while it's open.
   useEffect(() => {
     if (!open) return
     const onKey = (e) => {
@@ -22,9 +23,11 @@ export default function FloatingEarlyAccess() {
     document.addEventListener('keydown', onKey)
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+    const t = requestAnimationFrame(() => closeRef.current && closeRef.current.focus())
     return () => {
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = prev
+      cancelAnimationFrame(t)
     }
   }, [open])
 
@@ -159,6 +162,7 @@ export default function FloatingEarlyAccess() {
                   </p>
                 </div>
                 <button
+                  ref={closeRef}
                   type="button"
                   onClick={() => setOpen(false)}
                   aria-label="Close"

@@ -76,6 +76,7 @@ export default function WhyChoose() {
 
   return (
     <section
+      aria-label="Why healthcare professionals choose DermaScope.ai"
       style={{
         ...section,
         padding: isMobile ? '56px 20px' : isTablet ? '70px 32px' : section.padding,
@@ -83,7 +84,7 @@ export default function WhyChoose() {
     >
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <Reveal style={{ maxWidth: 760, margin: isMobile ? '0 auto 36px' : '0 auto 56px', textAlign: 'center' }}>
-          <h3
+          <h2
             style={{
               margin: 0,
               fontSize: 'clamp(28px,3vw,42px)',
@@ -94,7 +95,7 @@ export default function WhyChoose() {
             }}
           >
             Why Healthcare Professionals Choose DermaScope.ai
-          </h3>
+          </h2>
         </Reveal>
 
         <Reveal>
@@ -108,7 +109,7 @@ export default function WhyChoose() {
           >
             {/* Card 1 — Clinical Capabilities */}
             <div className="ds-trust-card" style={{ ...cardBase, padding: pad }}>
-              <h4 style={cardTitle}>Clinical Capabilities</h4>
+              <h3 style={cardTitle}>Clinical Capabilities</h3>
               <span style={accentLine} aria-hidden="true" />
               <div style={{ display: 'grid', gap: 16 }}>
                 {card1Items.map((t) => (
@@ -119,7 +120,7 @@ export default function WhyChoose() {
 
             {/* Card 2 — AI Performance (95% highlight) */}
             <div className="ds-trust-card" style={{ ...cardBase, padding: pad }}>
-              <h4 style={cardTitle}>AI Performance</h4>
+              <h3 style={cardTitle}>AI Performance</h3>
               <span style={accentLine} aria-hidden="true" />
               <div style={{ marginBottom: 22 }}>
                 <div style={{ fontSize: 12.5, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#7A8B92', marginBottom: 2 }}>
@@ -150,7 +151,7 @@ export default function WhyChoose() {
 
             {/* Card 3 — Built For (premium text layout, no checklist) */}
             <div className="ds-trust-card" style={{ ...cardBase, padding: pad }}>
-              <h4 style={cardTitle}>Built For</h4>
+              <h3 style={cardTitle}>Built For</h3>
               <span style={accentLine} aria-hidden="true" />
               <div style={{ display: 'grid' }}>
                 {professions.map((p, i) => (

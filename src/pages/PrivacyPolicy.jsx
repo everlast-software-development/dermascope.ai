@@ -269,7 +269,7 @@ const pageBg = {
 
 function Block({ block }) {
   if (typeof block === 'string') return <p>{block}</p>
-  if (block.sub) return <div className="ds-legal-subhead">{block.sub}</div>
+  if (block.sub) return <h3 className="ds-legal-subhead">{block.sub}</h3>
   if (block.p) return <p>{block.p}</p>
   if (block.list) {
     return (

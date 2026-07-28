@@ -189,11 +189,17 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  // Lock body scroll while the mobile overlay is open.
+  // Lock body scroll while the mobile overlay is open, and let Escape close it.
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : ''
+    if (!menuOpen) return undefined
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
     return () => {
       document.body.style.overflow = ''
+      document.removeEventListener('keydown', onKeyDown)
     }
   }, [menuOpen])
 
@@ -275,6 +281,7 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
         <div
           role="dialog"
           aria-modal="true"
+          aria-label="Main menu"
           style={{
             position: 'fixed',
             inset: 0,

@@ -190,7 +190,7 @@ export default function PainPoints() {
   }
 
   return (
-    <section id="challenge" style={sectionResponsive}>
+    <section id="challenge" aria-label="The clinical reality" style={sectionResponsive}>
       <div style={{ maxWidth: 1240, margin: '0 auto' }}>
         <Reveal style={{ maxWidth: 820, marginBottom: 22 }}>
           <SectionSubtitle label="The Clinical Reality" tone="light" />

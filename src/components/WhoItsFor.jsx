@@ -116,6 +116,7 @@ export default function WhoItsFor() {
   return (
     <section
       id="who"
+      aria-label="Who DermaScope.ai is built for"
       style={{
         ...section,
         padding: isMobile ? '64px 20px 72px' : isTablet ? '84px 32px 90px' : '110px 48px 120px',
@@ -231,7 +232,7 @@ export default function WhoItsFor() {
                   )}
                   <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 12, alignItems: 'center' }}>
                     <span className="ds-persona-icon" style={iconBadge(active)}>
-                      <Icon size={19} strokeWidth={1.9} />
+                      <Icon aria-hidden="true" size={19} strokeWidth={1.9} />
                     </span>
                     <span style={{ display: 'grid', gap: 2, minWidth: 0 }}>
                       <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.2, color: active ? '#FFFFFF' : '#EAF4F6' }}>

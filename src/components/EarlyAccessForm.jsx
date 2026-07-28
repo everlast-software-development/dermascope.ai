@@ -446,6 +446,7 @@ function CountrySearchSelect({
           <span style={{ color: '#9AA9AF' }}>{placeholder}</span>
         )}
         <ChevronDown
+          aria-hidden="true"
           size={17}
           strokeWidth={2}
           style={{
@@ -505,6 +506,7 @@ function CountrySearchSelect({
                 aria-label="Search by country name or dialing code"
                 aria-autocomplete="list"
                 aria-controls={listId}
+                aria-activedescendant={filtered[active] ? `${listId}-option-${active}` : undefined}
                 className="ds-input"
                 style={{ ...field, padding: '10px 12px 10px 34px', fontSize: 14.5 }}
               />
@@ -532,6 +534,7 @@ function CountrySearchSelect({
                 return (
                   <li
                     key={c.iso2}
+                    id={`${listId}-option-${i}`}
                     role="option"
                     aria-selected={isSel || false}
                     onMouseEnter={() => setActive(i)}
@@ -677,6 +680,7 @@ function SearchSelect({
           <span style={{ color: '#9AA9AF' }}>{placeholder}</span>
         )}
         <ChevronDown
+          aria-hidden="true"
           size={17}
           strokeWidth={2}
           style={{
@@ -735,6 +739,7 @@ function SearchSelect({
                 aria-label={searchPlaceholder}
                 aria-autocomplete="list"
                 aria-controls={listId}
+                aria-activedescendant={filtered[active] !== undefined ? `${listId}-option-${active}` : undefined}
                 className="ds-input"
                 style={{ ...field, padding: '10px 12px 10px 34px', fontSize: 14.5 }}
               />
@@ -762,6 +767,7 @@ function SearchSelect({
                 return (
                   <li
                     key={o}
+                    id={`${listId}-option-${i}`}
                     role="option"
                     aria-selected={isSel || false}
                     onMouseEnter={() => setActive(i)}

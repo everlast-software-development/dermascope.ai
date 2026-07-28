@@ -325,6 +325,7 @@ export default function WhyDermaScope() {
   return (
     <section
       id="why"
+      aria-label="Why DermaScope.ai"
       style={{
         ...section,
         padding: isMobile ? '64px 20px 32px' : isTablet ? '80px 32px 40px' : section.padding,

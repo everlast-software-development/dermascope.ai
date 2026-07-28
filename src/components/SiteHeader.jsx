@@ -23,8 +23,14 @@ export default function SiteHeader() {
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : ''
+    if (!menuOpen) return undefined
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
     return () => {
       document.body.style.overflow = ''
+      document.removeEventListener('keydown', onKeyDown)
     }
   }, [menuOpen])
 
@@ -128,6 +134,7 @@ export default function SiteHeader() {
         <div
           role="dialog"
           aria-modal="true"
+          aria-label="Main menu"
           style={{
             position: 'fixed',
             inset: 0,

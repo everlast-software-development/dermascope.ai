@@ -1,0 +1,22 @@
+# DermaScope.ai
+
+> Physician-supervised clinical AI that turns dermatology images into actionable intelligence — helping physicians detect visual patterns, prioritize high-risk findings, and make more informed clinical decisions. Currently accepting sign-ups for Early Access.
+
+This domain exposes one public action (submit an Early Access request) and one OAuth-protected admin action (list submissions). Agents should use the machine-readable references below rather than parsing the marketing page. Contact: info@dermascope.ai.
+
+## Docs
+
+- [auth.md](https://dermascope.ai/auth.md): Complete agent registration walkthrough — service_auth and anonymous identity types, the claim ceremony, and token exchange.
+- [API reference](https://dermascope.ai/docs/api.md): Human-readable documentation for the real endpoints.
+- [OpenAPI specification](https://dermascope.ai/openapi.yaml): Machine-readable spec covering /api/contact, /api/admin/submissions, /oauth/token, /oauth/revoke, /agent/identity, and /agent/identity/claim.
+- [OAuth Authorization Server metadata](https://dermascope.ai/.well-known/oauth-authorization-server): RFC 8414 discovery document, including the agent_auth extension (register_uri, identity types, credential types).
+- [OpenID Provider metadata](https://dermascope.ai/.well-known/openid-configuration): Discovery-convention alias of the OAuth metadata above.
+- [OAuth Protected Resource metadata](https://dermascope.ai/.well-known/oauth-protected-resource): RFC 9728, names the authorization server for the admin API.
+- [API Catalog](https://dermascope.ai/.well-known/api-catalog): RFC 9727 linkset for both real endpoints.
+- [MCP Server Card](https://dermascope.ai/.well-known/mcp/server-card.json): SEP-2127 metadata for the live MCP server at /mcp.
+- [Agent Skills index](https://dermascope.ai/.well-known/agent-skills/index.json): Discovery index for the one real callable skill (submit an Early Access request).
+
+## Optional
+
+- [Privacy Policy](https://dermascope.ai/privacy-policy): Data handling, consent, and retention.
+- [Delete Account](https://dermascope.ai/delete-account): How to request account or data deletion.

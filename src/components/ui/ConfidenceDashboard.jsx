@@ -197,9 +197,9 @@ export default function ConfidenceDashboard() {
           {/* Copy + trust attributes */}
           <div>
             <div style={{ fontSize: 'clamp(44px,4vw,56px)', fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em', color: 'rgba(165,231,248,0.28)', marginBottom: 14 }}>03</div>
-            <h2 style={{ margin: '0 0 16px', fontSize: isMobile ? 23 : 'clamp(30px,2.6vw,38px)', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.14, color: '#FFFFFF' }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: isMobile ? 23 : 'clamp(30px,2.6vw,38px)', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.14, color: '#FFFFFF' }}>
               High-Confidence AI Support
-            </h2>
+            </h3>
             <p style={{ margin: '0 0 26px', maxWidth: 560, fontSize: 16.5, lineHeight: 1.7, color: 'rgba(221,240,244,0.82)' }}>
               DermaScope.ai delivers up to 95% image analysis accuracy across supported AI workflows
               validated under controlled testing conditions.

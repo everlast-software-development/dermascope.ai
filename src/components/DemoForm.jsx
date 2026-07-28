@@ -15,6 +15,7 @@ export default function DemoForm() {
   return (
     <section
       id="demo"
+      aria-label="Join Early Access"
       style={{
         ...section,
         padding: isMobile ? '48px 20px' : isTablet ? '72px 32px' : section.padding,

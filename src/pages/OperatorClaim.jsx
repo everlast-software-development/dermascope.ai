@@ -87,7 +87,7 @@ export default function OperatorClaim() {
   }
 
   return (
-    <div
+    <main
       style={{
         minHeight: '100vh',
         display: 'flex',
@@ -151,6 +151,7 @@ export default function OperatorClaim() {
                 inputMode="numeric"
                 pattern="[0-9]{6}"
                 maxLength={6}
+                aria-label="6-digit confirmation code"
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="123456"
@@ -193,6 +194,6 @@ export default function OperatorClaim() {
           </>
         )}
       </div>
-    </div>
+    </main>
   )
 }

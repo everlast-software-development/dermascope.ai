@@ -18,15 +18,17 @@ export default function App() {
           containers. `overflowX: clip` still contains the decorative blobs. */}
       <div style={{ overflowX: 'clip' }}>
         <Hero />
-        <PainPoints />
-        <WhyDermaScope />
-        <WhyChoose />
-        <HowItWorks />
-        <DemoForm />
-        {/* Live Battle with AI — temporarily hidden (kept for later use) */}
-        {/* <BattleWithAI /> */}
-        <WhoItsFor />
-        <FAQ />
+        <main>
+          <PainPoints />
+          <WhyDermaScope />
+          <WhyChoose />
+          <HowItWorks />
+          <DemoForm />
+          {/* Live Battle with AI — temporarily hidden (kept for later use) */}
+          {/* <BattleWithAI /> */}
+          <WhoItsFor />
+          <FAQ />
+        </main>
         <CinematicFooter />
       </div>
 

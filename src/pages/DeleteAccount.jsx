@@ -158,7 +158,7 @@ export default function DeleteAccount() {
                 <section key={s.id} id={s.id} className="ds-legal-card" style={cardBase}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
                     <span style={iconBadge(false)}>
-                      <Icon size={21} strokeWidth={2} />
+                      <Icon aria-hidden="true" size={21} strokeWidth={2} />
                     </span>
                     <h2 style={{ margin: 0, fontSize: isMobile ? 20 : 24, fontWeight: 700, letterSpacing: '-0.015em', color: '#1B4754' }}>
                       {s.title}
@@ -200,7 +200,7 @@ export default function DeleteAccount() {
                   marginBottom: 18,
                 }}
               >
-                <Mail size={24} strokeWidth={2} />
+                <Mail aria-hidden="true" size={24} strokeWidth={2} />
               </span>
               <h2 style={{ margin: '0 0 12px', fontSize: isMobile ? 23 : 28, fontWeight: 700, letterSpacing: '-0.015em', color: '#FFFFFF' }}>
                 Need to Delete Your Account?
@@ -233,7 +233,7 @@ export default function DeleteAccount() {
                     textDecoration: 'none',
                   }}
                 >
-                  <Mail size={18} strokeWidth={2.2} />
+                  <Mail aria-hidden="true" size={18} strokeWidth={2.2} />
                   Contact Support
                 </a>
               </div>
