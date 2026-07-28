@@ -267,7 +267,10 @@ function signAccessToken(subject, scope) {
 // 7523 §3), not the resource — it's presented back to /oauth/token, never to
 // /api/admin/submissions directly.
 function signIdentityAssertion(reg) {
-  return jwt.sign({ scope: reg.post_claim_scopes.join(' '), login_hint: reg.login_hint }, SIGNING_PRIVATE_PEM, {
+  // Pre-claim (anonymous, not yet claimed): pre_claim_scopes, always empty.
+  // Claimed (either type): post_claim_scopes.
+  const scope = (reg.status === 'claimed' ? reg.post_claim_scopes : reg.pre_claim_scopes || []).join(' ');
+  return jwt.sign({ scope, login_hint: reg.login_hint }, SIGNING_PRIVATE_PEM, {
     algorithm: 'RS256',
     keyid: SIGNING_KID,
     issuer: ISSUER,
@@ -339,36 +342,49 @@ function buildClaimBlock(reg) {
   };
 }
 
-// POST /agent/identity — auth.md "Register" step, service_auth type. Open —
-// no auth on the call itself (per spec: you only need to know a human's
-// email). Nothing sensitive is granted here; the claim ceremony below is the
-// actual authorization gate.
+// POST /agent/identity — auth.md "Register" step. Supports two identity
+// types, both open (no auth on the call itself) and both gated on the same
+// claim ceremony before anything sensitive is granted:
+//   · service_auth — you know a human's email; the full claim block (code +
+//     verification_uri) comes back immediately (unchanged from before).
+//   · anonymous    — you know nothing yet. Returns an immediate pre-claim
+//     identity_assertion scoped to NOTHING (pre_claim_scopes is always
+//     empty — this resource returns applicant PII, so there is no
+//     meaningful "anonymous-usable" scope to grant). Claiming later
+//     (POST /agent/identity/claim with an email) upgrades it to
+//     post_claim_scopes, exactly like service_auth.
 app.post('/agent/identity', (req, res) => {
   const type = req.body && req.body.type;
-  if (type !== 'service_auth') {
+  if (type !== 'service_auth' && type !== 'anonymous') {
     return res.status(400).json({
       error: 'invalid_request',
-      error_description: 'Only {"type":"service_auth"} is supported — no identity_assertion (ID-JAG) or anonymous registration.',
+      error_description: 'Only {"type":"service_auth"} or {"type":"anonymous"} is supported — no identity_assertion (ID-JAG) registration.',
     });
   }
 
-  const loginHint = req.body && req.body.login_hint;
-  if (typeof loginHint !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginHint)) {
-    return res.status(400).json({ error: 'invalid_request', error_description: '"login_hint" must be a valid email address.' });
+  let loginHint = null;
+  if (type === 'service_auth') {
+    loginHint = req.body && req.body.login_hint;
+    if (typeof loginHint !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginHint)) {
+      return res.status(400).json({ error: 'invalid_request', error_description: '"login_hint" must be a valid email address.' });
+    }
   }
 
   const now = Date.now();
   const reg = {
     registration_id: genId('reg'),
-    type: 'service_auth',
-    login_hint: loginHint,
+    type,
+    login_hint: loginHint, // null for anonymous until claimed
     status: 'pending', // 'pending' | 'claimed' | 'revoked'
     claim_token: genId('clm'),
-    claim_attempt_token: genId('cat'),
-    user_code: genUserCode(),
-    user_code_expires_at: now + USER_CODE_TTL_S * 1000,
+    // anonymous doesn't start its claim ceremony until POST /agent/identity/claim
+    // supplies an email (it has none yet) — no user_code to hand out before then.
+    claim_attempt_token: type === 'service_auth' ? genId('cat') : null,
+    user_code: type === 'service_auth' ? genUserCode() : null,
+    user_code_expires_at: type === 'service_auth' ? now + USER_CODE_TTL_S * 1000 : null,
     code_attempts: 0,
     outer_expires_at: now + OUTER_CLAIM_TTL_S * 1000,
+    pre_claim_scopes: [], // always empty — no anonymous-usable access to a PII resource
     post_claim_scopes: POST_CLAIM_SCOPES,
     created_at: new Date(now).toISOString(),
     claimed_at: null,
@@ -377,6 +393,21 @@ app.post('/agent/identity', (req, res) => {
     poll_interval: 5,
   };
   saveRegistration(reg);
+
+  if (type === 'anonymous') {
+    const assertionExpires = new Date(now + ASSERTION_TTL_S * 1000).toISOString();
+    return res.status(200).json({
+      registration_id: reg.registration_id,
+      registration_type: reg.type,
+      identity_assertion: signIdentityAssertion(reg), // pre-claim: scope is empty, per pre_claim_scopes
+      assertion_expires: assertionExpires,
+      pre_claim_scopes: reg.pre_claim_scopes,
+      claim_url: `${ISSUER}/agent/identity/claim`,
+      claim_token: reg.claim_token,
+      claim_token_expires: new Date(reg.outer_expires_at).toISOString(),
+      post_claim_scopes: reg.post_claim_scopes,
+    });
+  }
 
   res.status(200).json({
     registration_id: reg.registration_id,
@@ -389,9 +420,12 @@ app.post('/agent/identity', (req, res) => {
   });
 });
 
-// POST /agent/identity/claim — agent-facing: re-mint a fresh user_code if the
-// previous one expired but the outer 24h window is still open (per spec's
-// "Registration is still active" case).
+// POST /agent/identity/claim — agent-facing. Two uses, same endpoint and
+// response shape (per spec):
+//   · service_auth — re-mint a fresh user_code if the previous one expired
+//     but the outer 24h window is still open.
+//   · anonymous — start the claim ceremony for the first time, supplying the
+//     human's email now (anonymous registration didn't collect one).
 app.post('/agent/identity/claim', (req, res) => {
   const claimToken = req.body && req.body.claim_token;
   const reg = findRegistrationByClaimToken(claimToken);
@@ -405,6 +439,14 @@ app.post('/agent/identity/claim', (req, res) => {
   }
   if (reg.status === 'claimed') {
     return res.status(409).json({ error: 'claimed_or_in_flight', error_description: 'This registration has already been claimed.' });
+  }
+
+  if (!reg.login_hint) {
+    const email = req.body && req.body.email;
+    if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'invalid_request', error_description: '"email" is required to start the claim ceremony for an anonymous registration.' });
+    }
+    reg.login_hint = email;
   }
 
   reg.user_code = genUserCode();
@@ -621,10 +663,16 @@ app.post('/oauth/token', (req, res) => {
       return res.status(400).json({ error: 'invalid_grant', error_description: 'identity_assertion is invalid or expired. Restart at Step 3 (register again).' });
     }
     const reg = findRegistrationById(decoded.sub);
-    if (!reg || reg.status !== 'claimed') {
+    if (!reg || reg.status === 'revoked') {
       return res.status(400).json({ error: 'invalid_grant', error_description: 'Registration not found or has been revoked.' });
     }
-    const scope = reg.post_claim_scopes.join(' ');
+    // Claimed → post_claim_scopes. Still-pending anonymous → pre_claim_scopes
+    // (always empty — see /agent/identity). Still-pending service_auth has no
+    // valid assertion to present at all (none is issued before claiming).
+    if (reg.status !== 'claimed' && reg.type !== 'anonymous') {
+      return res.status(400).json({ error: 'invalid_grant', error_description: 'Registration has not been claimed yet.' });
+    }
+    const scope = (reg.status === 'claimed' ? reg.post_claim_scopes : reg.pre_claim_scopes).join(' ');
     return res.json({ access_token: signAccessToken(reg.registration_id, scope), token_type: 'Bearer', expires_in: TOKEN_TTL_S, scope });
   }
 
@@ -691,25 +739,33 @@ app.get('/.well-known/oauth-authorization-server', (_req, res) => {
     scopes_supported: [ADMIN_SCOPE],
     revocation_endpoint: `${ISSUER}/oauth/revoke`,
     revocation_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post'],
-    // auth.md (https://github.com/workos/auth.md) agent-registration extension —
-    // the FULL canonical service_auth flow (fetched and read in full, not
-    // summarized): registration only needs a login_hint, a human confirms a
-    // device-code-style claim, and the agent then holds a service-signed
-    // identity_assertion (credential_types below) re-exchanged via the
-    // jwt-bearer grant. `register_uri` mirrors `identity_endpoint`;
-    // `revocation_uri`/`credential_types_supported` mirror their `*_endpoint`/
-    // `credential_types` counterparts — same real values, extra aliases for
-    // checkers that look for either name. No `identity_assertion.
-    // assertion_types_supported` (ID-JAG) and no `anonymous` block: this site
-    // doesn't support those identity types, and won't advertise flows that
-    // aren't real.
+    // auth.md (https://github.com/workos/auth.md) agent-registration
+    // extension — TWO real, working identity types, both gated by the same
+    // claim ceremony before anything sensitive is granted:
+    //   · service_auth — register with a human's login_hint; the claim block
+    //     (code + verification_uri) comes back immediately.
+    //   · anonymous — register with nothing; get an immediate pre-claim
+    //     identity_assertion scoped to NOTHING (`anonymous.credential_types_
+    //     supported` describes it; `pre_claim_scopes` in the registration
+    //     response is always `[]` — this resource returns applicant PII, so
+    //     there's no meaningful scope to grant before a human confirms).
+    //     Claiming later (POST /agent/identity/claim with an email) upgrades
+    //     to the same post_claim_scopes as service_auth.
+    // `register_uri`/`revocation_uri`/`credential_types_supported` mirror
+    // their `*_endpoint`/`credential_types` counterparts — same real values,
+    // extra aliases for checkers that look for either name. Still no
+    // `identity_assertion.assertion_types_supported` (ID-JAG): that needs an
+    // external identity-provider trust relationship this site doesn't have.
     agent_auth: {
       skill: `${ISSUER}/auth.md`,
       identity_endpoint: `${ISSUER}/agent/identity`,
       register_uri: `${ISSUER}/agent/identity`,
       claim_endpoint: `${ISSUER}/agent/identity/claim`,
       claim_uri: `${ISSUER}/agent/identity/claim`,
-      identity_types_supported: ['service_auth'],
+      identity_types_supported: ['service_auth', 'anonymous'],
+      anonymous: {
+        credential_types_supported: ['identity_assertion'],
+      },
       credential_types: ['identity_assertion'],
       credential_types_supported: ['identity_assertion'],
       revocation_endpoint: `${ISSUER}/oauth/revoke`,

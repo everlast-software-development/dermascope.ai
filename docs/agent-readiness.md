@@ -84,13 +84,44 @@ with the genuine flow from the canonical `AUTH.md` reference
   `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer` (RFC 7523) —
   no more human interaction needed until it expires or is revoked.
 
-`identity_assertion` (federated identity via **ID-JAG**) and `anonymous`
-registration are still not implemented, and `identity_types_supported`
-still lists only `service_auth` — ID-JAG needs an external identity-provider
-trust relationship this site doesn't have, and open/anonymous registration
-is a poor fit for a resource that returns applicant PII regardless of
-whether it's later claimable. Full setup and request/response reference:
+`identity_assertion` (federated identity via **ID-JAG**) is still not
+implemented — it needs an external identity-provider trust relationship
+this site doesn't have, and there's no way to build that "for real" without
+an actual IdP partner. Full setup and request/response reference:
 [`docs/oauth-admin-api.md`](./oauth-admin-api.md), [`/auth.md`](../public/auth.md).
+
+## Why `anonymous` was added after all
+
+An audit against isitagentready.com's own `auth-md/SKILL.md` (not just the
+canonical spec) found the actual reason "no complete registration method
+advertised" kept failing even after `service_auth` was implemented
+correctly: **the checker's own "Flow Metadata" section never mentions
+`service_auth` at all** — it only recognizes three method archetypes
+(ID-JAG, verified-email, and `anonymous`) as "complete." `service_auth`
+being spec-correct was never going to satisfy a checker whose completeness
+rules don't include it.
+
+Once that was confirmed (live requests against every endpoint, cross-
+referenced field-by-field against both the canonical spec and the
+checker's own SKILL.md — see the git history for the full audit table),
+the fix was to add `anonymous` as a genuinely second, working identity
+type — not fake metadata pointing at nothing. It reuses the same claim-
+ceremony infrastructure `service_auth` already has:
+
+- `POST /agent/identity` with `{"type":"anonymous"}` (no login_hint, no
+  auth) returns an immediate `identity_assertion` — but `pre_claim_scopes`
+  is hard-coded to `[]`. Exchanging it yields an access token with an
+  empty scope, which `GET /api/admin/submissions` rejects with
+  `403 insufficient_scope` — verified live. There is still no way to read
+  applicant PII without a human confirming a claim.
+- The claim ceremony itself (operator login, device-code confirmation,
+  post-claim `identity_assertion`) is identical to `service_auth`'s —
+  anonymous registration just supplies the human's email later, at
+  `POST /agent/identity/claim`, instead of at registration time.
+
+`service_auth` is unchanged and was re-verified end-to-end after this
+change (see the diff for the full test log). `identity_types_supported`
+now lists both.
 
 ## MCP Server Card — built the server, not just the card
 

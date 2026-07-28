@@ -2,7 +2,7 @@
 
 You are an agent. DermaScope.ai supports **agentic registration**: discover → register → claim → exchange for an access_token → call the API → handle revocation. This is the complete, real, working flow — every endpoint and example below is live on this domain, not illustrative.
 
-There is exactly one protected resource on this site: `GET /api/admin/submissions` (Early Access form submissions). There is exactly one identity type: **`service_auth`**.
+There is exactly one protected resource on this site: `GET /api/admin/submissions` (Early Access form submissions). Two identity types are supported — **`service_auth`** (you know a human's email) and **`anonymous`** (you know nothing yet) — both funnel through the same claim ceremony before anything sensitive is granted.
 
 ## Step 1 — Discover
 
@@ -47,7 +47,8 @@ GET https://dermascope.ai/.well-known/oauth-authorization-server
     "register_uri": "https://dermascope.ai/agent/identity",
     "claim_endpoint": "https://dermascope.ai/agent/identity/claim",
     "claim_uri": "https://dermascope.ai/agent/identity/claim",
-    "identity_types_supported": ["service_auth"],
+    "identity_types_supported": ["service_auth", "anonymous"],
+    "anonymous": { "credential_types_supported": ["identity_assertion"] },
     "credential_types": ["identity_assertion"],
     "revocation_endpoint": "https://dermascope.ai/oauth/revoke",
     "revocation_uri": "https://dermascope.ai/oauth/revoke"
@@ -56,12 +57,14 @@ GET https://dermascope.ai/.well-known/oauth-authorization-server
 ```
 
 - `agent_auth.identity_endpoint` (`register_uri` is the same endpoint, alternate name) — where you POST to register (Step 2).
-- `agent_auth.claim_endpoint` (`claim_uri`, same endpoint) — where you re-mint a `user_code` if the current one expires (Step 3c).
-- `agent_auth.identity_types_supported` — `["service_auth"]` only. This site has no external identity-provider relationship (no `identity_assertion`/ID-JAG) and no anonymous-access tier for a resource returning applicant PII — both are correctly absent, not omitted by mistake.
-- `agent_auth.credential_types` — `["identity_assertion"]`: the credential you end up holding after a successful claim (Step 4) is a service-signed JWT, not a client_secret.
+- `agent_auth.claim_endpoint` (`claim_uri`, same endpoint) — where you re-mint a `user_code`, or (for `anonymous`) start the claim ceremony for the first time (Step 3c).
+- `agent_auth.identity_types_supported` — `["service_auth", "anonymous"]`. No `identity_assertion`/ID-JAG: this site has no external identity-provider relationship to trust — correctly absent, not omitted by mistake.
+- `agent_auth.credential_types` — `["identity_assertion"]`: the credential you end up holding is a service-signed JWT, not a client_secret, for either identity type.
 - `token_endpoint` / `revocation_endpoint` — standard RFC 8414 / RFC 7009 fields, used in Steps 5, 6, and Revocation.
 
 ## Step 2 — Register
+
+### 2a. `service_auth` — you know a human's email
 
 ```http
 POST /agent/identity
@@ -91,6 +94,56 @@ Response (`200`):
 ```
 
 `claim_token` is yours to hold (used for polling in Step 3) — never show it to the human. `claim.user_code` is what you hand to the human — never poll with it. `claim_token_expires` is the outer 24-hour window for the whole registration; `claim.expires_in` (600s) is just the current `user_code`'s window, which you can refresh (Step 3c) as many times as needed within the outer window.
+
+### 2b. `anonymous` — you know nothing yet
+
+```http
+POST /agent/identity
+Content-Type: application/json
+
+{ "type": "anonymous" }
+```
+
+Response (`200`):
+```json
+{
+  "registration_id": "reg_e51b626a2d52b84b840e5be5",
+  "registration_type": "anonymous",
+  "identity_assertion": "eyJhbGciOiJSUzI1NiIs...",
+  "assertion_expires": "2026-08-27T08:11:58.888Z",
+  "pre_claim_scopes": [],
+  "claim_url": "https://dermascope.ai/agent/identity/claim",
+  "claim_token": "clm_41765e2425e7e6f3bc078126",
+  "claim_token_expires": "2026-07-29T08:11:58.888Z",
+  "post_claim_scopes": ["admin:submissions:read"]
+}
+```
+
+You get a usable `identity_assertion` immediately — but `pre_claim_scopes` is always `[]`. This resource returns applicant PII, so there is no meaningful pre-claim access to grant; exchanging this assertion (Step 4) returns an `access_token` with an empty `scope`, which `GET /api/admin/submissions` rejects with `403 insufficient_scope`. To get real access, start the claim ceremony by supplying a human's email — there wasn't one at registration time:
+
+```http
+POST /agent/identity/claim
+Content-Type: application/json
+
+{ "claim_token": "clm_41765e2425e7e6f3bc078126", "email": "you@example.com" }
+```
+
+Response (`200`) — same shape as re-minting a `service_auth` code (Step 3c):
+```json
+{
+  "registration_id": "reg_e51b626a2d52b84b840e5be5",
+  "claim_attempt_id": "cat_ac403fcb38c7980aaeac28ee",
+  "status": "initiated",
+  "expires_at": "2026-07-29T08:11:58.888Z",
+  "claim_attempt": {
+    "user_code": "040780",
+    "expires_in": 600,
+    "verification_uri": "https://dermascope.ai/login?return_to=...",
+    "interval": 5
+  }
+}
+```
+From here, proceed exactly as `service_auth` does from Step 3a onward — hand `claim_attempt.user_code`/`verification_uri` to the human, poll, and once claimed, re-exchange the *new* `identity_assertion` returned in Step 3b (its `scope` is now `post_claim_scopes`, not empty) — the pre-claim one from registration keeps working but stays scoped to nothing.
 
 ## Step 3 — Claim ceremony
 
@@ -186,7 +239,8 @@ Tokens expire after 1 hour. Re-run Step 4 with the same `identity_assertion` for
 
 | Code | Where | What to do |
 |---|---|---|
-| `invalid_request` | `/agent/identity` | Body isn't `{"type":"service_auth","login_hint":"<email>"}`. Fix and retry. |
+| `invalid_request` | `/agent/identity` | Body isn't `{"type":"service_auth","login_hint":"<email>"}` or `{"type":"anonymous"}`. Fix and retry. |
+| `invalid_request` | `/agent/identity/claim` | Registration has no `login_hint` yet (anonymous) and no valid `email` was supplied to set one. |
 | `invalid_claim_token` | `/agent/identity/claim` | `claim_token` wrong or unknown. Restart at Step 2. |
 | `claim_expired` (410) | `/agent/identity/claim` | The 24h outer window closed before the human finished. Restart at Step 2. |
 | `claimed_or_in_flight` (409) | `/agent/identity/claim` | Already claimed — go straight to Step 4. |

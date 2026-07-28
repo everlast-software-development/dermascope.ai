@@ -116,52 +116,69 @@ paths:
   /agent/identity:
     post:
       operationId: registerAgentIdentity
-      summary: Register a service_auth identity (auth.md "Register" step)
+      summary: Register a service_auth or anonymous identity (auth.md "Register" step)
       description: >
-        Open — no auth on the call itself. Starts a claim ceremony a human
-        (DermaScope.ai's operator) must confirm at the returned
-        claim.verification_uri before any credential is usable. See /auth.md.
+        Open — no auth on the call itself. service_auth's claim block
+        (with claim.verification_uri) comes back immediately; anonymous
+        gets an immediate identity_assertion instead, scoped to nothing
+        (pre_claim_scopes is always []) until claimed. See /auth.md.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [type, login_hint]
+              required: [type]
               properties:
-                type:       { type: string, enum: [service_auth] }
-                login_hint: { type: string, format: email, description: "Email of the human who will confirm the claim." }
+                type:       { type: string, enum: [service_auth, anonymous] }
+                login_hint: { type: string, format: email, description: "Required for service_auth only — email of the human who will confirm the claim." }
       responses:
         '200':
-          description: Registration created.
+          description: Registration created. Shape depends on `type`.
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  registration_id:      { type: string }
-                  registration_type:    { type: string, example: "service_auth" }
-                  claim_url:            { type: string, format: uri }
-                  claim_token:          { type: string, description: "Secret — the agent's own credential for polling /oauth/token. Never shown to the human." }
-                  claim_token_expires:  { type: string, format: date-time }
-                  post_claim_scopes:    { type: array, items: { type: string } }
-                  claim:
-                    type: object
+                oneOf:
+                  - type: object
+                    title: service_auth response
                     properties:
-                      user_code:        { type: string, example: "449073" }
-                      expires_in:       { type: integer, example: 600 }
-                      verification_uri: { type: string, format: uri }
-                      interval:         { type: integer, example: 5 }
+                      registration_id:      { type: string }
+                      registration_type:    { type: string, example: "service_auth" }
+                      claim_url:            { type: string, format: uri }
+                      claim_token:          { type: string, description: "Secret — the agent's own credential for polling /oauth/token. Never shown to the human." }
+                      claim_token_expires:  { type: string, format: date-time }
+                      post_claim_scopes:    { type: array, items: { type: string } }
+                      claim:
+                        type: object
+                        properties:
+                          user_code:        { type: string, example: "449073" }
+                          expires_in:       { type: integer, example: 600 }
+                          verification_uri: { type: string, format: uri }
+                          interval:         { type: integer, example: 5 }
+                  - type: object
+                    title: anonymous response
+                    properties:
+                      registration_id:     { type: string }
+                      registration_type:   { type: string, example: "anonymous" }
+                      identity_assertion:  { type: string, description: "Usable immediately via the jwt-bearer grant, but scope is always empty." }
+                      assertion_expires:   { type: string, format: date-time }
+                      pre_claim_scopes:    { type: array, items: { type: string }, description: "Always []." }
+                      claim_url:           { type: string, format: uri }
+                      claim_token:         { type: string }
+                      claim_token_expires: { type: string, format: date-time }
+                      post_claim_scopes:   { type: array, items: { type: string } }
         '400':
-          description: invalid_request — bad type or login_hint.
+          description: invalid_request — bad type, or missing login_hint for service_auth.
   /agent/identity/claim:
     post:
-      operationId: remintClaimCode
-      summary: Re-mint a fresh user_code (auth.md claim ceremony)
+      operationId: startOrRemintClaim
+      summary: Start (anonymous) or re-mint (service_auth) a claim ceremony
       description: >
-        Agent-facing. Call with the same claim_token if the current
-        user_code expired before the human finished, and the 24h outer
-        window is still open.
+        Agent-facing. For service_auth, call with the same claim_token to
+        mint a fresh user_code if the current one expired (24h outer
+        window still open). For anonymous, call with claim_token AND email
+        to start the ceremony for the first time — anonymous registration
+        collects no email upfront.
       requestBody:
         required: true
         content:
@@ -171,9 +188,12 @@ paths:
               required: [claim_token]
               properties:
                 claim_token: { type: string }
+                email:       { type: string, format: email, description: "Required the first time for an anonymous registration; optional (ignored) for service_auth re-mints." }
       responses:
         '200':
           description: Fresh claim_attempt issued.
+        '400':
+          description: invalid_request — anonymous registration with no login_hint yet and no valid email supplied.
         '401':
           description: invalid_claim_token.
         '409':

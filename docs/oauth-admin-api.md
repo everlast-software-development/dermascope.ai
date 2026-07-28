@@ -7,11 +7,19 @@ to get an access token for it:
 
 1. **`client_credentials`** — a static, operator-provisioned pair, for your
    own scripts/tools. Set up once, works forever.
-2. **The full auth.md `service_auth` flow** — for third-party AI agents. An
-   agent registers with just an email, you (the operator) confirm a 6-digit
-   code in your browser, and the agent then holds a long-lived credential it
-   re-exchanges for access tokens without bothering you again. This is the
-   real, complete flow from [github.com/workos/auth.md](https://github.com/workos/auth.md)
+2. **The full auth.md flow, either identity type** — for third-party AI
+   agents:
+   - **`service_auth`** — the agent already knows a human's email.
+   - **`anonymous`** — the agent knows nothing yet; it gets a usable-shaped
+     `identity_assertion` immediately, but scoped to nothing (empty
+     `pre_claim_scopes` — this resource holds applicant PII, so there's no
+     safe amount of pre-claim access to grant). It supplies an email later,
+     at claim time, to start the same ceremony `service_auth` uses.
+
+   Either way: you (the operator) confirm a 6-digit code in your browser,
+   and the agent then holds a long-lived credential it re-exchanges for
+   access tokens without bothering you again. This is the real, complete
+   flow from [github.com/workos/auth.md](https://github.com/workos/auth.md)
    — see [`/auth.md`](../public/auth.md) for the agent-facing walkthrough.
 
 - **Token format:** RS256-signed JWT, 1 hour lifetime.
@@ -59,8 +67,11 @@ secrets aren't both valid at once.
 
 ## Option 2 — third-party agents (the auth.md claim ceremony)
 
-This is what makes `service_auth` real per spec: registration needs only an
-email, and nothing is granted until you personally confirm it.
+This is what makes `service_auth`/`anonymous` real per spec: whichever way
+an agent registers, nothing is granted until you personally confirm it.
+`anonymous`'s pre-claim `identity_assertion` is real and usable, but its
+scope is hard-coded to nothing — see [`/auth.md`](../public/auth.md#step-2--register)
+for the exact request/response shapes of both identity types.
 
 ### One-time setup
 
