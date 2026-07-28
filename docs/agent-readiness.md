@@ -29,7 +29,11 @@ where.
 | OAuth Protected Resource Metadata (RFC 9728) | `server.js` → `GET /.well-known/oauth-protected-resource` |
 | The protected resource itself | `server.js` → `GET /api/admin/submissions` — see [`docs/oauth-admin-api.md`](./oauth-admin-api.md) |
 | `auth.md` agent-registration metadata | [`public/auth.md`](../public/auth.md) |
-| `agent_auth` block (RFC 7591-flavored `service_auth` registration) | `server.js` → `POST /agent/identity`, referenced from `GET /.well-known/oauth-authorization-server` |
+| `agent_auth` block, full canonical `service_auth` flow | `server.js` → `POST /agent/identity`, referenced from `GET /.well-known/oauth-authorization-server` |
+| Claim ceremony (RFC 8628-shaped): register → operator confirms a code → claim grant → `identity_assertion` | `server.js` → `POST /agent/identity/claim`, `POST /oauth/token` (`urn:workos:agent-auth:grant-type:claim`) — see [`docs/oauth-admin-api.md`](./oauth-admin-api.md) |
+| Operator login (the human side of the claim ceremony — this site's first-ever login system) | `server.js` → `POST /api/operator/login`, [`src/pages/OperatorLogin.jsx`](../src/pages/OperatorLogin.jsx) at `/login` |
+| Claim confirmation page | `server.js` → `POST /api/operator/claim/confirm`, [`src/pages/OperatorClaim.jsx`](../src/pages/OperatorClaim.jsx) at `/claim` |
+| `identity_assertion` re-exchange (RFC 7523 JWT-bearer) | `server.js` → `POST /oauth/token` (`urn:ietf:params:oauth:grant-type:jwt-bearer`) |
 | Token revocation (RFC 7009) | `server.js` → `POST /oauth/revoke` |
 | Real MCP server (Streamable HTTP, 2 tools) | `server.js` → `POST /mcp` — see [`docs/mcp-server.md`](./mcp-server.md) |
 | MCP Server Card (SEP-2127) | `server.js` → `GET /.well-known/mcp/server-card.json`, `GET /mcp/server-card` |
@@ -57,23 +61,36 @@ we built the thing the check assumes exists: a real client_credentials OAuth
 `GET /api/admin/submissions` (reads locally-stored Early Access
 submissions). See [`docs/oauth-admin-api.md`](./oauth-admin-api.md) for setup.
 
-## auth.md — real, but deliberately narrower than the full spec
+## auth.md — the full canonical `service_auth` flow, including the claim ceremony
 
-The [workos/auth.md](https://github.com/workos/auth.md) protocol this check
-references defines three identity types (`service_auth`, `identity_assertion`,
-`anonymous`), a device-code-style "claim ceremony" for linking an agent
-identity to a human account, and an events/webhook system for revocation
-notices. DermaScope.ai only implements **`service_auth`** — a
-pre-provisioned or self-registered secret, gated behind an operator-issued
-initial access token (see [`docs/oauth-admin-api.md`](./oauth-admin-api.md)).
+Earlier revisions of this project implemented `service_auth` as a
+Bearer-gated Dynamic Client Registration endpoint (RFC 7591-style) — real,
+but not what the spec's `service_auth` actually is (see "A note on stale
+findings" below for how that was discovered). That's since been replaced
+with the genuine flow from the canonical `AUTH.md` reference
+(`github.com/workos/auth.md`, read in full):
 
-`identity_assertion` (federated identity via ID-JAG) needs an external
-identity-provider relationship this site doesn't have; the claim ceremony and
-event webhooks need infrastructure (a device-code UI, a webhook dispatcher)
-that doesn't exist either. Rather than stub those out non-functionally, the
-`identity_types_supported` field in `agent_auth` lists only `service_auth`,
-and `/auth.md` says so explicitly — the same "advertise only what's real"
-principle applied throughout this doc.
+- `POST /agent/identity` is now open — no auth on the call, just
+  `{"type":"service_auth","login_hint":"<email>"}` — and issues no
+  credential by itself.
+- The response's `claim` block (`user_code`, `verification_uri`, RFC
+  8628 device-code shape) is handed to a human, who confirms it at
+  `/claim` — a new page, behind a new `/login` (this site's first-ever
+  login system, gated by `OPERATOR_EMAIL`/`OPERATOR_PASSWORD`).
+- Only after that confirmation does the agent (polling
+  `grant_type=urn:workos:agent-auth:grant-type:claim`) receive an access
+  token *and* a service-signed `identity_assertion` (30 days), which it
+  re-exchanges for further access tokens via
+  `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer` (RFC 7523) —
+  no more human interaction needed until it expires or is revoked.
+
+`identity_assertion` (federated identity via **ID-JAG**) and `anonymous`
+registration are still not implemented, and `identity_types_supported`
+still lists only `service_auth` — ID-JAG needs an external identity-provider
+trust relationship this site doesn't have, and open/anonymous registration
+is a poor fit for a resource that returns applicant PII regardless of
+whether it's later claimable. Full setup and request/response reference:
+[`docs/oauth-admin-api.md`](./oauth-admin-api.md), [`/auth.md`](../public/auth.md).
 
 ## MCP Server Card — built the server, not just the card
 
@@ -127,24 +144,31 @@ This site's protected resource (`/api/admin/submissions`) has no end user
 in that sense at all — it's the operator's own tooling reading the
 operator's own data, with no delegation to model.
 
-**Decision: don't build a fake claim ceremony.** Making this check fully
-"complete" would mean adding this site's first-ever login system (an
-operator has to sign in somewhere to confirm a device-code) purely to
-satisfy a checker whose three recognized flows are all built for a
-delegation scenario that doesn't exist here. That's a substantial new
-feature — not a metadata fix — in service of modeling a human "claimant"
-who isn't actually part of this system. Building it would mean fabricating
-the very thing this whole document has repeatedly refused to fabricate:
-infrastructure that doesn't correspond to anything real. **Confirmed with
-the user, who chose to accept this specific check may not pass** rather
-than build it.
+**Initial decision (since reversed): don't build a fake claim ceremony.**
+Making this check fully "complete" meant adding this site's first-ever login
+system purely to model a human "claimant" who wasn't actually part of this
+system — a substantial new feature, not a metadata fix. The first pass
+through this document accepted the check might not pass rather than build
+that.
 
-What *was* fixed: `agent_auth.credential_types` (isitagentready.com's
+**The user then explicitly asked for the real thing, in detail** (matching
+the canonical spec's exact field names and flow), which changed the
+calculus: this was no longer "build fake infrastructure to please a
+checker" but "the person who owns this system wants the real feature." So
+it got built for real — see the "full canonical `service_auth` flow"
+section above for what that involved (an actual operator login, a working
+device-code-style claim ceremony, `identity_assertion` issuance and
+re-exchange). Tested end-to-end: registration, pending/claimed states,
+wrong-password lockout, wrong-code retry limits, `slow_down`/
+`expired_token`/`claim_expired` timing edge cases, the jwt-bearer
+re-exchange, and the static `client_credentials` client all continuing to
+work unmodified.
+
+Also fixed along the way: `agent_auth.credential_types` (isitagentready.com's
 SKILL.md lists this exact key — this project had `credential_types_supported`
-only, which doesn't match). Both keys are now published (`credential_types`
-for exact-match, `credential_types_supported` for consistency with this
-document's other `*_supported` fields) — same real value either way:
-`["client_secret"]`.
+only, which doesn't match). Both keys are now published, and the value they
+describe changed from `["client_secret"]` to `["identity_assertion"]` — the
+credential an agent actually ends up holding after the real flow above.
 
 If a re-raised finding keeps failing after live verification, suspect the
 checker's expectations (or a genuine architecture mismatch, as above)

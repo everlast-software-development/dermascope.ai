@@ -21,6 +21,12 @@ const LOGO_PATH = path.join(__dirname, '..', 'public', 'logo-email.png');
 const app  = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust the first proxy hop (Railway/Cloudflare terminate TLS upstream) so
+// req.secure / req.ip reflect the real client connection — needed to mark
+// the operator session cookie Secure correctly and to key login rate-limiting
+// by real client IP rather than the proxy's.
+app.set('trust proxy', 1);
+
 // ─── Middleware ───────────────────────────────────────────────────────────────
 const ALLOWED_ORIGINS = [
   'http://localhost:5173',  // Vite dev server
@@ -163,72 +169,27 @@ function readSubmissions() {
   }
 }
 
-// ─── OAuth 2.0 authorization server (RFC 6749 / RFC 8414) ───────────────────────
-// A real, working — not fabricated — authorization server: it protects exactly
-// one resource, GET /api/admin/submissions, via the client_credentials grant
-// (machine-to-machine; there is no end-user login on this site, so no
-// authorization endpoint / redirect-based flow is offered or advertised).
-//
-// Setup: set OAUTH_ADMIN_CLIENT_ID and OAUTH_ADMIN_CLIENT_SECRET in the server
-// environment (see .env.example). Full guide: docs/oauth-admin-api.md.
+// ─── OAuth 2.0 authorization server (RFC 6749 / RFC 8414) + auth.md ─────────────
+// Two independent ways to get an access token for GET /api/admin/submissions:
+//   1. client_credentials (RFC 6749 §4.4) — a static, operator-provisioned
+//      client (OAUTH_ADMIN_CLIENT_ID/SECRET). For the operator's own scripts.
+//   2. The full canonical auth.md "service_auth" flow (github.com/workos/auth.md,
+//      fetched and implemented in full, not summarized): an agent registers
+//      with only a login_hint (a human's email), the operator confirms a
+//      6-digit code in a browser (the claim ceremony), and the agent then
+//      holds a long-lived, service-signed identity_assertion it exchanges for
+//      access tokens via the RFC 7523 JWT-bearer grant. This is what makes
+//      "service_auth" actually complete per spec — earlier revisions of this
+//      endpoint issued a client_secret immediately with no human in the loop,
+//      which (correctly) didn't count. Full setup: docs/oauth-admin-api.md.
 const ISSUER       = (process.env.SITE_URL || 'https://dermascope.ai').replace(/\/$/, '');
 const RESOURCE_URI = `${ISSUER}/api/admin`;
 const ADMIN_SCOPE  = 'admin:submissions:read';
 const TOKEN_TTL_S  = 3600;
+const ASSERTION_TTL_S = 60 * 60 * 24 * 30; // 30 days — the identity_assertion is the durable credential a claimed agent holds; see signing-key persistence note below.
 
 const ADMIN_CLIENT_ID     = process.env.OAUTH_ADMIN_CLIENT_ID || '';
 const ADMIN_CLIENT_SECRET = process.env.OAUTH_ADMIN_CLIENT_SECRET || '';
-
-// ─── Dynamic client registration (auth.md "service_auth") ───────────────────
-// Beyond the one static admin client above, agents can self-register for a
-// client_id/client_secret pair via POST /agent/identity — gated behind an
-// "initial access token" (RFC 7591 §3) so registration is still a decision a
-// human makes, not an open door onto a resource that returns applicant PII.
-// Registered clients are persisted (secret hashed, never stored in plain
-// text) to server/data/oauth-clients.json — gitignored, same ephemeral-
-// storage caveat as the submissions store. See docs/oauth-admin-api.md.
-const REGISTRATION_TOKEN = process.env.OAUTH_REGISTRATION_TOKEN || '';
-const CLIENTS_FILE = path.join(SUBMISSIONS_DIR, 'oauth-clients.json');
-
-function hashSecret(secret) {
-  const salt = crypto.randomBytes(16);
-  const hash = crypto.scryptSync(secret, salt, 64);
-  return `scrypt$${salt.toString('hex')}$${hash.toString('hex')}`;
-}
-function verifySecret(secret, stored) {
-  const parts = String(stored).split('$');
-  if (parts.length !== 3 || parts[0] !== 'scrypt') return false;
-  const salt = Buffer.from(parts[1], 'hex');
-  const expected = Buffer.from(parts[2], 'hex');
-  const actual = crypto.scryptSync(secret, salt, expected.length);
-  return crypto.timingSafeEqual(actual, expected);
-}
-function readClients() {
-  try {
-    return JSON.parse(fs.readFileSync(CLIENTS_FILE, 'utf8'));
-  } catch (err) {
-    if (err.code !== 'ENOENT') console.error('Failed to read OAuth client registry:', err.message);
-    return [];
-  }
-}
-function writeClients(clients) {
-  fs.mkdirSync(SUBMISSIONS_DIR, { recursive: true });
-  fs.writeFileSync(CLIENTS_FILE, JSON.stringify(clients, null, 2));
-}
-function findActiveClient(clientId) {
-  return readClients().find((c) => c.client_id === clientId && !c.revoked) || null;
-}
-
-// Signing key: generated fresh on every process start. Tokens are short-lived
-// (1h) and issued on demand, so a key that rotates on restart is fine — any
-// tokens signed by a previous instance simply stop verifying, and a client can
-// always request a new one. No key material to provision or leak.
-const { publicKey: SIGNING_PUBLIC_KEY, privateKey: SIGNING_PRIVATE_KEY } =
-  crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
-const SIGNING_KID        = crypto.randomBytes(8).toString('hex');
-const SIGNING_PRIVATE_PEM = SIGNING_PRIVATE_KEY.export({ type: 'pkcs8', format: 'pem' });
-const SIGNING_PUBLIC_PEM  = SIGNING_PUBLIC_KEY.export({ type: 'spki', format: 'pem' });
-const SIGNING_PUBLIC_JWK  = { ...SIGNING_PUBLIC_KEY.export({ format: 'jwk' }), kid: SIGNING_KID, use: 'sig', alg: 'RS256' };
 
 function timingSafeEqualStr(a, b) {
   const bufA = Buffer.from(String(a));
@@ -252,127 +213,454 @@ function parseBasicAuth(header) {
   }
 }
 
-// POST /agent/identity — auth.md "Register" step for the service_auth
-// identity type. Requires the operator's initial access token; there is no
-// open self-service signup (see comment on REGISTRATION_TOKEN above).
-app.post('/agent/identity', (req, res) => {
-  const presented = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-  if (!REGISTRATION_TOKEN || !presented || !timingSafeEqualStr(presented, REGISTRATION_TOKEN)) {
-    res.set('WWW-Authenticate', 'Bearer realm="agent-registration"');
-    return res.status(401).json({
-      error: 'invalid_token',
-      error_description: 'A valid initial access token (from DermaScope.ai\'s operator) is required to register.',
-    });
+// Signing key: by default generated fresh on every process start (tokens are
+// short-lived and reissued on demand, so that's normally fine). But the
+// identity_assertion below is deliberately long-lived (30 days) — the whole
+// point of the claim ceremony is that a human doesn't repeat it often — so an
+// ephemeral key would silently undercut that promise on every redeploy. Set
+// OAUTH_SIGNING_PRIVATE_KEY_PEM / OAUTH_SIGNING_PUBLIC_KEY_PEM (see
+// .env.example for how to generate them) to persist the key across restarts
+// in production; without them, everything still works, but claimed identities
+// won't survive a redeploy.
+function loadOrGenerateSigningKey() {
+  const privPem = process.env.OAUTH_SIGNING_PRIVATE_KEY_PEM;
+  const pubPem  = process.env.OAUTH_SIGNING_PUBLIC_KEY_PEM;
+  if (privPem && pubPem) {
+    try {
+      const privateKey = crypto.createPrivateKey(privPem.replace(/\\n/g, '\n'));
+      const publicKey  = crypto.createPublicKey(pubPem.replace(/\\n/g, '\n'));
+      console.log('  ✓  OAuth signing key loaded from environment (persists across restarts)');
+      return { privateKey, publicKey };
+    } catch (err) {
+      console.error('Failed to parse OAUTH_SIGNING_*_KEY_PEM, falling back to an ephemeral key:', err.message);
+    }
   }
+  console.log('  ℹ  OAUTH_SIGNING_*_KEY_PEM not set — using an ephemeral signing key for this process. ' +
+              'Access tokens AND identity_assertions issued now stop verifying after the next restart. ' +
+              'Set these in production — see .env.example / docs/oauth-admin-api.md.');
+  return crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+}
+const { publicKey: SIGNING_PUBLIC_KEY, privateKey: SIGNING_PRIVATE_KEY } = loadOrGenerateSigningKey();
+// Derived from the key itself (not random) so it stays stable across restarts
+// when the key is persisted via env vars — a client caching keys by kid
+// shouldn't see it change unless the underlying key actually did.
+const SIGNING_KID = crypto.createHash('sha256')
+  .update(SIGNING_PUBLIC_KEY.export({ type: 'spki', format: 'der' }))
+  .digest('hex').slice(0, 16);
+const SIGNING_PRIVATE_PEM = SIGNING_PRIVATE_KEY.export({ type: 'pkcs8', format: 'pem' });
+const SIGNING_PUBLIC_PEM  = SIGNING_PUBLIC_KEY.export({ type: 'spki', format: 'pem' });
+const SIGNING_PUBLIC_JWK  = { ...SIGNING_PUBLIC_KEY.export({ format: 'jwk' }), kid: SIGNING_KID, use: 'sig', alg: 'RS256' };
 
-  const identityType = (req.body && req.body.identity_type) || '';
-  if (identityType !== 'service_auth') {
-    return res.status(400).json({
-      error: 'unsupported_identity_type',
-      error_description: 'Only "service_auth" is supported — no identity_assertion or anonymous registration.',
-    });
-  }
-
-  const clientName   = (req.body && String(req.body.client_name || '').trim()) || 'unnamed-agent';
-  const clientId      = `agt_${crypto.randomBytes(12).toString('hex')}`;
-  const clientSecret  = crypto.randomBytes(24).toString('base64url');
-
-  const clients = readClients();
-  clients.push({
-    client_id: clientId,
-    secret_hash: hashSecret(clientSecret),
-    client_name: clientName,
-    identity_type: 'service_auth',
-    scopes: [ADMIN_SCOPE],
-    created_at: new Date().toISOString(),
-    revoked: false,
-  });
-  writeClients(clients);
-
-  res.status(201).json({
-    identity_type: 'service_auth',
-    client_id: clientId,
-    client_secret: clientSecret, // shown once — the server never stores or returns it again
-    scopes: [ADMIN_SCOPE],
-  });
-});
-
-app.post('/oauth/token', (req, res) => {
-  const grantType = (req.body && req.body.grant_type) || '';
-  if (grantType !== 'client_credentials') {
-    return res.status(400).json({ error: 'unsupported_grant_type' });
-  }
-
-  const basic = parseBasicAuth(req.headers.authorization);
-  const clientId     = basic ? basic.id     : req.body && req.body.client_id;
-  const clientSecret = basic ? basic.secret : req.body && req.body.client_secret;
-
-  let authenticatedClientId = null;
-  if (
-    ADMIN_CLIENT_ID && ADMIN_CLIENT_SECRET &&
-    typeof clientId === 'string' && timingSafeEqualStr(clientId, ADMIN_CLIENT_ID) &&
-    typeof clientSecret === 'string' && timingSafeEqualStr(clientSecret, ADMIN_CLIENT_SECRET)
-  ) {
-    authenticatedClientId = clientId;
-  } else if (typeof clientId === 'string' && typeof clientSecret === 'string') {
-    const record = findActiveClient(clientId);
-    if (record && verifySecret(clientSecret, record.secret_hash)) authenticatedClientId = clientId;
-  }
-
-  if (!authenticatedClientId) {
-    res.set('WWW-Authenticate', 'Basic realm="oauth"');
-    return res.status(401).json({ error: 'invalid_client' });
-  }
-
-  const accessToken = jwt.sign({ scope: ADMIN_SCOPE }, SIGNING_PRIVATE_PEM, {
+function signAccessToken(subject, scope) {
+  return jwt.sign({ scope }, SIGNING_PRIVATE_PEM, {
     algorithm: 'RS256',
     keyid: SIGNING_KID,
     issuer: ISSUER,
     audience: RESOURCE_URI,
-    subject: authenticatedClientId,
+    subject,
     expiresIn: TOKEN_TTL_S,
     jwtid: crypto.randomUUID(),
   });
+}
 
-  res.json({
-    access_token: accessToken,
-    token_type: 'Bearer',
-    expires_in: TOKEN_TTL_S,
-    scope: ADMIN_SCOPE,
+// The identity_assertion's audience is this server's own token endpoint (RFC
+// 7523 §3), not the resource — it's presented back to /oauth/token, never to
+// /api/admin/submissions directly.
+function signIdentityAssertion(reg) {
+  return jwt.sign({ scope: reg.post_claim_scopes.join(' '), login_hint: reg.login_hint }, SIGNING_PRIVATE_PEM, {
+    algorithm: 'RS256',
+    keyid: SIGNING_KID,
+    issuer: ISSUER,
+    audience: `${ISSUER}/oauth/token`,
+    subject: reg.registration_id,
+    expiresIn: ASSERTION_TTL_S,
+    jwtid: crypto.randomUUID(),
   });
-});
+}
 
 // ─── Token revocation (RFC 7009) ─────────────────────────────────────────────
-// In-memory only, by design: the signing key itself rotates every process
-// restart (see above), which already invalidates every previously issued
-// token — so a revocation list only needs to outlive the process it was
-// created in, and tokens are short-lived (1h) besides.
+// In-memory only. When the signing key is ephemeral (see above), a process
+// restart already invalidates every previously issued token, so a
+// revocation list only needs to outlive the process it was created in. When
+// the key IS persisted, this list resets on restart regardless — revoking a
+// whole identity (see "Credential revocation flow" in auth.md) survives that
+// because it's a flag on the persisted registration record, not this map.
 const revokedJtis = new Map(); // jti -> expiry (ms)
 function pruneRevoked() {
   const now = Date.now();
   for (const [jti, expiry] of revokedJtis) if (expiry <= now) revokedJtis.delete(jti);
 }
 
+// ─── Agent registration store (auth.md "service_auth") ──────────────────────
+// One JSON file, one record per registration attempt — no database in this
+// project (same pattern as the submissions store above). Gitignored: contains
+// login_hint (an email) and secret tokens. Same ephemeral-storage caveat as
+// everything else under server/data/ on hosts without a persistent volume.
+const REGISTRATIONS_FILE = path.join(SUBMISSIONS_DIR, 'agent-registrations.json');
+const USER_CODE_TTL_S     = 600;              // 10 minutes — matches the canonical spec's example
+const OUTER_CLAIM_TTL_S   = 60 * 60 * 24;     // 24 hours — outer registration window
+const POST_CLAIM_SCOPES   = [ADMIN_SCOPE];
+
+function readRegistrations() {
+  try {
+    return JSON.parse(fs.readFileSync(REGISTRATIONS_FILE, 'utf8'));
+  } catch (err) {
+    if (err.code !== 'ENOENT') console.error('Failed to read agent registrations:', err.message);
+    return [];
+  }
+}
+function writeRegistrations(regs) {
+  fs.mkdirSync(SUBMISSIONS_DIR, { recursive: true });
+  fs.writeFileSync(REGISTRATIONS_FILE, JSON.stringify(regs, null, 2));
+}
+function saveRegistration(reg) {
+  const regs = readRegistrations();
+  const idx = regs.findIndex((r) => r.registration_id === reg.registration_id);
+  if (idx === -1) regs.push(reg); else regs[idx] = reg;
+  writeRegistrations(regs);
+}
+function findRegistrationById(id)          { return readRegistrations().find((r) => r.registration_id === id) || null; }
+function findRegistrationByClaimToken(t)   { return readRegistrations().find((r) => r.claim_token === t) || null; }
+function findRegistrationByAttemptToken(t) { return readRegistrations().find((r) => r.claim_attempt_token === t) || null; }
+
+function genId(prefix) { return `${prefix}_${crypto.randomBytes(12).toString('hex')}`; }
+function genUserCode()  { return String(crypto.randomInt(0, 1_000_000)).padStart(6, '0'); }
+
+// Shape borrows from RFC 8628 device authorization (user_code, verification_uri,
+// expires_in, interval) with a claim_attempt_token embedded in verification_uri
+// so the URL identifies the registration without leaking the user-typed code.
+function buildClaimBlock(reg) {
+  const returnTo = `/claim?claim_attempt_token=${encodeURIComponent(reg.claim_attempt_token)}`;
+  return {
+    user_code: reg.user_code,
+    expires_in: USER_CODE_TTL_S,
+    verification_uri: `${ISSUER}/login?return_to=${encodeURIComponent(returnTo)}`,
+    interval: reg.poll_interval,
+  };
+}
+
+// POST /agent/identity — auth.md "Register" step, service_auth type. Open —
+// no auth on the call itself (per spec: you only need to know a human's
+// email). Nothing sensitive is granted here; the claim ceremony below is the
+// actual authorization gate.
+app.post('/agent/identity', (req, res) => {
+  const type = req.body && req.body.type;
+  if (type !== 'service_auth') {
+    return res.status(400).json({
+      error: 'invalid_request',
+      error_description: 'Only {"type":"service_auth"} is supported — no identity_assertion (ID-JAG) or anonymous registration.',
+    });
+  }
+
+  const loginHint = req.body && req.body.login_hint;
+  if (typeof loginHint !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginHint)) {
+    return res.status(400).json({ error: 'invalid_request', error_description: '"login_hint" must be a valid email address.' });
+  }
+
+  const now = Date.now();
+  const reg = {
+    registration_id: genId('reg'),
+    type: 'service_auth',
+    login_hint: loginHint,
+    status: 'pending', // 'pending' | 'claimed' | 'revoked'
+    claim_token: genId('clm'),
+    claim_attempt_token: genId('cat'),
+    user_code: genUserCode(),
+    user_code_expires_at: now + USER_CODE_TTL_S * 1000,
+    code_attempts: 0,
+    outer_expires_at: now + OUTER_CLAIM_TTL_S * 1000,
+    post_claim_scopes: POST_CLAIM_SCOPES,
+    created_at: new Date(now).toISOString(),
+    claimed_at: null,
+    claimed_by: null,
+    last_poll_at: null,
+    poll_interval: 5,
+  };
+  saveRegistration(reg);
+
+  res.status(200).json({
+    registration_id: reg.registration_id,
+    registration_type: reg.type,
+    claim_url: `${ISSUER}/agent/identity/claim`,
+    claim_token: reg.claim_token,
+    claim_token_expires: new Date(reg.outer_expires_at).toISOString(),
+    post_claim_scopes: reg.post_claim_scopes,
+    claim: buildClaimBlock(reg),
+  });
+});
+
+// POST /agent/identity/claim — agent-facing: re-mint a fresh user_code if the
+// previous one expired but the outer 24h window is still open (per spec's
+// "Registration is still active" case).
+app.post('/agent/identity/claim', (req, res) => {
+  const claimToken = req.body && req.body.claim_token;
+  const reg = findRegistrationByClaimToken(claimToken);
+  if (!reg) {
+    return res.status(401).json({ error: 'invalid_claim_token', error_description: 'claim_token is wrong or unknown.' });
+  }
+
+  const now = Date.now();
+  if (now > reg.outer_expires_at) {
+    return res.status(410).json({ error: 'claim_expired', error_description: 'The registration window has closed. Restart at Step 3 (register again).' });
+  }
+  if (reg.status === 'claimed') {
+    return res.status(409).json({ error: 'claimed_or_in_flight', error_description: 'This registration has already been claimed.' });
+  }
+
+  reg.user_code = genUserCode();
+  reg.claim_attempt_token = genId('cat');
+  reg.user_code_expires_at = now + USER_CODE_TTL_S * 1000;
+  reg.code_attempts = 0;
+  saveRegistration(reg);
+
+  res.status(200).json({
+    registration_id: reg.registration_id,
+    claim_attempt_id: reg.claim_attempt_token,
+    status: 'initiated',
+    expires_at: new Date(reg.outer_expires_at).toISOString(),
+    claim_attempt: buildClaimBlock(reg),
+  });
+});
+
+// ─── Operator authentication (the human side of the claim ceremony) ─────────
+// The one credential this site's operator holds. Set OPERATOR_EMAIL/
+// OPERATOR_PASSWORD in the environment — see .env.example. This is this
+// site's first-ever login system, built specifically so the claim ceremony
+// has a real human to confirm registrations, rather than faking one.
+const OPERATOR_EMAIL    = process.env.OPERATOR_EMAIL || '';
+const OPERATOR_PASSWORD = process.env.OPERATOR_PASSWORD || '';
+const SESSION_COOKIE    = 'ds_operator_session';
+const SESSION_TTL_S     = 60 * 60; // 1 hour
+
+const operatorSessions = new Map(); // sessionId -> expiry (ms)
+function pruneSessions() {
+  const now = Date.now();
+  for (const [id, exp] of operatorSessions) if (exp <= now) operatorSessions.delete(id);
+}
+
+const loginAttempts = new Map(); // ip -> { count, lockedUntil }
+function isLockedOut(ip) {
+  const rec = loginAttempts.get(ip);
+  return !!(rec && rec.lockedUntil > Date.now());
+}
+function recordFailedLogin(ip) {
+  const rec = loginAttempts.get(ip) || { count: 0, lockedUntil: 0 };
+  rec.count += 1;
+  if (rec.count >= 5) {
+    rec.lockedUntil = Date.now() + 60_000;
+    rec.count = 0;
+  }
+  loginAttempts.set(ip, rec);
+}
+
+function parseCookies(req) {
+  const header = req.headers.cookie || '';
+  const out = {};
+  header.split(';').forEach((pair) => {
+    const idx = pair.indexOf('=');
+    if (idx === -1) return;
+    const key = pair.slice(0, idx).trim();
+    if (key) out[key] = decodeURIComponent(pair.slice(idx + 1).trim());
+  });
+  return out;
+}
+
+function requireOperatorSession(req, res, next) {
+  pruneSessions();
+  const sessionId = parseCookies(req)[SESSION_COOKIE];
+  const expiry = sessionId && operatorSessions.get(sessionId);
+  if (!expiry || expiry <= Date.now()) {
+    return res.status(401).json({ authenticated: false, error: 'not_authenticated' });
+  }
+  next();
+}
+
+app.post('/api/operator/login', (req, res) => {
+  const ip = req.ip;
+  if (isLockedOut(ip)) {
+    return res.status(429).json({ success: false, error: 'too_many_attempts' });
+  }
+  if (!OPERATOR_EMAIL || !OPERATOR_PASSWORD) {
+    console.error('Operator login rejected: OPERATOR_EMAIL/OPERATOR_PASSWORD are not configured.');
+    return res.status(401).json({ success: false, error: 'invalid_credentials' });
+  }
+  const password = req.body && req.body.password;
+  if (typeof password !== 'string' || !timingSafeEqualStr(password, OPERATOR_PASSWORD)) {
+    recordFailedLogin(ip);
+    return res.status(401).json({ success: false, error: 'invalid_credentials' });
+  }
+  loginAttempts.delete(ip);
+
+  const sessionId = crypto.randomBytes(24).toString('base64url');
+  operatorSessions.set(sessionId, Date.now() + SESSION_TTL_S * 1000);
+  res.set('Set-Cookie', `${SESSION_COOKIE}=${sessionId}; HttpOnly; Path=/; Max-Age=${SESSION_TTL_S}; SameSite=Lax${req.secure ? '; Secure' : ''}`);
+  res.json({ success: true, email: OPERATOR_EMAIL });
+});
+
+app.post('/api/operator/logout', (req, res) => {
+  const sessionId = parseCookies(req)[SESSION_COOKIE];
+  if (sessionId) operatorSessions.delete(sessionId);
+  res.set('Set-Cookie', `${SESSION_COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`);
+  res.json({ success: true });
+});
+
+// Always 200s (never 401) so the frontend can poll this on page load without
+// special-casing an error response.
+app.get('/api/operator/session', (req, res) => {
+  pruneSessions();
+  const sessionId = parseCookies(req)[SESSION_COOKIE];
+  const expiry = sessionId && operatorSessions.get(sessionId);
+  const authenticated = !!(expiry && expiry > Date.now());
+  res.json(authenticated ? { authenticated: true, email: OPERATOR_EMAIL } : { authenticated: false });
+});
+
+// GET context for the claim page (login_hint, requested scopes) before the
+// operator commits to typing a code.
+app.get('/api/operator/claim/:attemptToken', requireOperatorSession, (req, res) => {
+  const reg = findRegistrationByAttemptToken(req.params.attemptToken);
+  if (!reg) return res.status(404).json({ error: 'not_found' });
+  res.json({
+    login_hint: reg.login_hint,
+    scopes: reg.post_claim_scopes,
+    status: reg.status,
+    code_expires_at: new Date(reg.user_code_expires_at).toISOString(),
+  });
+});
+
+// POST — the operator's browser submits the user_code here. This is the
+// actual authorization decision: confirming this is what makes the
+// registration usable at all.
+app.post('/api/operator/claim/confirm', requireOperatorSession, (req, res) => {
+  const attemptToken = req.body && req.body.claim_attempt_token;
+  const userCode = req.body && req.body.user_code;
+  const reg = findRegistrationByAttemptToken(attemptToken);
+  if (!reg) return res.status(404).json({ success: false, error: 'not_found' });
+
+  const now = Date.now();
+  if (now > reg.outer_expires_at) return res.status(410).json({ success: false, error: 'claim_expired' });
+  if (reg.status === 'claimed')   return res.status(200).json({ success: true, already_claimed: true });
+  if (now > reg.user_code_expires_at) return res.status(400).json({ success: false, error: 'code_expired' });
+  if (reg.code_attempts >= 5) return res.status(429).json({ success: false, error: 'too_many_attempts' });
+
+  if (typeof userCode !== 'string' || !timingSafeEqualStr(userCode.trim(), reg.user_code)) {
+    reg.code_attempts += 1;
+    saveRegistration(reg);
+    return res.status(400).json({ success: false, error: 'invalid_code' });
+  }
+
+  reg.status = 'claimed';
+  reg.claimed_at = new Date(now).toISOString();
+  reg.claimed_by = OPERATOR_EMAIL;
+  saveRegistration(reg);
+  res.json({ success: true });
+});
+
+app.post('/oauth/token', (req, res) => {
+  const grantType = (req.body && req.body.grant_type) || '';
+
+  // ── client_credentials (RFC 6749 §4.4) — the static operator client ──────
+  if (grantType === 'client_credentials') {
+    const basic = parseBasicAuth(req.headers.authorization);
+    const clientId     = basic ? basic.id     : req.body && req.body.client_id;
+    const clientSecret = basic ? basic.secret : req.body && req.body.client_secret;
+    const ok = !!(
+      ADMIN_CLIENT_ID && ADMIN_CLIENT_SECRET &&
+      typeof clientId === 'string' && timingSafeEqualStr(clientId, ADMIN_CLIENT_ID) &&
+      typeof clientSecret === 'string' && timingSafeEqualStr(clientSecret, ADMIN_CLIENT_SECRET)
+    );
+    if (!ok) {
+      res.set('WWW-Authenticate', 'Basic realm="oauth"');
+      return res.status(401).json({ error: 'invalid_client' });
+    }
+    return res.json({ access_token: signAccessToken(clientId, ADMIN_SCOPE), token_type: 'Bearer', expires_in: TOKEN_TTL_S, scope: ADMIN_SCOPE });
+  }
+
+  // ── urn:workos:agent-auth:grant-type:claim — polling the claim ceremony ──
+  if (grantType === 'urn:workos:agent-auth:grant-type:claim') {
+    const claimToken = (req.body && req.body.claim_token) || '';
+    const reg = findRegistrationByClaimToken(claimToken);
+    if (!reg) return res.status(400).json({ error: 'invalid_grant', error_description: 'Unknown claim_token.' });
+    if (reg.status === 'revoked') return res.status(400).json({ error: 'invalid_grant', error_description: 'Registration has been revoked.' });
+
+    const now = Date.now();
+    if (reg.last_poll_at && now - reg.last_poll_at < reg.poll_interval * 1000) {
+      reg.poll_interval += 5; // RFC 8628 §3.5 slow_down backoff
+      saveRegistration(reg);
+      return res.status(400).json({ error: 'slow_down' });
+    }
+    reg.last_poll_at = now;
+
+    if (reg.status === 'pending') {
+      saveRegistration(reg);
+      if (now > reg.user_code_expires_at) return res.status(400).json({ error: 'expired_token' });
+      return res.status(400).json({ error: 'authorization_pending' });
+    }
+
+    // status === 'claimed'
+    saveRegistration(reg);
+    const scope = reg.post_claim_scopes.join(' ');
+    return res.json({
+      access_token: signAccessToken(reg.registration_id, scope),
+      token_type: 'Bearer',
+      expires_in: TOKEN_TTL_S,
+      scope,
+      identity_assertion: signIdentityAssertion(reg),
+      assertion_expires: new Date(now + ASSERTION_TTL_S * 1000).toISOString(),
+    });
+  }
+
+  // ── urn:ietf:params:oauth:grant-type:jwt-bearer (RFC 7523) — re-exchange ─
+  // the long-lived identity_assertion for a fresh access token, without
+  // repeating the claim ceremony.
+  if (grantType === 'urn:ietf:params:oauth:grant-type:jwt-bearer') {
+    const assertion = (req.body && req.body.assertion) || '';
+    let decoded;
+    try {
+      decoded = jwt.verify(assertion, SIGNING_PUBLIC_PEM, { algorithms: ['RS256'], issuer: ISSUER, audience: `${ISSUER}/oauth/token` });
+    } catch (err) {
+      return res.status(400).json({ error: 'invalid_grant', error_description: 'identity_assertion is invalid or expired. Restart at Step 3 (register again).' });
+    }
+    const reg = findRegistrationById(decoded.sub);
+    if (!reg || reg.status !== 'claimed') {
+      return res.status(400).json({ error: 'invalid_grant', error_description: 'Registration not found or has been revoked.' });
+    }
+    const scope = reg.post_claim_scopes.join(' ');
+    return res.json({ access_token: signAccessToken(reg.registration_id, scope), token_type: 'Bearer', expires_in: TOKEN_TTL_S, scope });
+  }
+
+  return res.status(400).json({ error: 'unsupported_grant_type' });
+});
+
 app.post('/oauth/revoke', (req, res) => {
   const token = (req.body && req.body.token) || '';
-  const basic = parseBasicAuth(req.headers.authorization);
-  const clientId     = basic ? basic.id     : req.body && req.body.client_id;
-  const clientSecret = basic ? basic.secret : req.body && req.body.client_secret;
 
   try {
     const decoded = jwt.verify(token, SIGNING_PUBLIC_PEM, { algorithms: ['RS256'], issuer: ISSUER, audience: RESOURCE_URI });
 
-    // Only the client that owns the token (its `sub`) may revoke it, and must
-    // re-present valid credentials for that same client.
+    // The token's `sub` is either the static admin client_id, or a
+    // registration_id. Proving ownership differs accordingly: the admin
+    // client re-presents its client_secret; a claimed registration
+    // re-presents a still-valid identity_assertion for that same subject.
     let credentialsOk = false;
-    if (decoded.sub === clientId && typeof clientId === 'string' && typeof clientSecret === 'string') {
-      if (ADMIN_CLIENT_ID && timingSafeEqualStr(clientId, ADMIN_CLIENT_ID) && timingSafeEqualStr(clientSecret, ADMIN_CLIENT_SECRET)) {
-        credentialsOk = true;
-      } else {
-        const record = findActiveClient(clientId);
-        credentialsOk = !!(record && verifySecret(clientSecret, record.secret_hash));
+    if (ADMIN_CLIENT_ID && decoded.sub === ADMIN_CLIENT_ID) {
+      const basic = parseBasicAuth(req.headers.authorization);
+      const clientId     = basic ? basic.id     : req.body && req.body.client_id;
+      const clientSecret = basic ? basic.secret : req.body && req.body.client_secret;
+      credentialsOk = !!(
+        typeof clientId === 'string' && timingSafeEqualStr(clientId, ADMIN_CLIENT_ID) &&
+        typeof clientSecret === 'string' && timingSafeEqualStr(clientSecret, ADMIN_CLIENT_SECRET)
+      );
+    } else {
+      try {
+        const assertionDecoded = jwt.verify((req.body && req.body.assertion) || '', SIGNING_PUBLIC_PEM, {
+          algorithms: ['RS256'], issuer: ISSUER, audience: `${ISSUER}/oauth/token`,
+        });
+        credentialsOk = assertionDecoded.sub === decoded.sub;
+      } catch {
+        // not credentialsOk
       }
     }
+
     if (credentialsOk && decoded.jti) {
       pruneRevoked();
       revokedJtis.set(decoded.jti, decoded.exp * 1000);
@@ -385,60 +673,45 @@ app.post('/oauth/revoke', (req, res) => {
   res.status(200).end();
 });
 
-// RFC 8414 — no authorization_endpoint / response_types_supported: this server
-// only supports client_credentials, so it never uses the authorization endpoint
-// (both fields are conditionally required by the RFC only when such a flow is
-// supported).
+// RFC 8414. No authorization_endpoint / response_types_supported: there is
+// still no browser-redirect OAuth flow — the "human in the loop" here is the
+// claim ceremony below (its own bespoke device-code-shaped protocol), not a
+// standard OAuth authorization endpoint.
 app.get('/.well-known/oauth-authorization-server', (_req, res) => {
   res.type('application/json').json({
     issuer: ISSUER,
     token_endpoint: `${ISSUER}/oauth/token`,
     token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post'],
     jwks_uri: `${ISSUER}/.well-known/jwks.json`,
-    grant_types_supported: ['client_credentials'],
+    grant_types_supported: [
+      'client_credentials',
+      'urn:workos:agent-auth:grant-type:claim',
+      'urn:ietf:params:oauth:grant-type:jwt-bearer',
+    ],
     scopes_supported: [ADMIN_SCOPE],
     revocation_endpoint: `${ISSUER}/oauth/revoke`,
     revocation_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post'],
-    // auth.md (https://github.com/workos/auth.md) agent-registration extension.
-    // `register_uri`/`identity_endpoint` are the same real endpoint under two
-    // names: the canonical spec (fetched in full from github.com/workos/AUTH.md,
-    // not summarized) calls it `identity_endpoint`; `register_uri` is kept
-    // alongside as an alias since that's the literal name generic "does
-    // auth.md exist" checkers tend to look for. Both point at the one real
-    // POST /agent/identity route — this isn't two endpoints, just two labels.
-    // `credential_types` matches the exact key name isitagentready.com's own
-    // auth-md SKILL.md lists; `credential_types_supported` is kept alongside
-    // for consistency with this document's other `*_supported` fields (both
-    // describe the same one real credential type: client_secret).
-    //
-    // IMPORTANT — `identity_types_supported: ['service_auth']` is honest about
-    // what endpoint exists (POST /agent/identity, gated by an operator-issued
-    // initial access token, returns a client_id/client_secret immediately),
-    // but does NOT match the canonical auth.md spec's actual `service_auth`
-    // shape: the real spec's service_auth takes a `login_hint` (a human
-    // user's email, no auth on the call itself) and requires a claim
-    // ceremony (`claim_url`/`claim_token`/a `claim` block with `user_code`+
-    // `verification_uri`, RFC 8628-style) where a signed-in human confirms a
-    // code before any credential is issued. All three of the spec's identity
-    // types (service_auth, identity_assertion/ID-JAG, anonymous) model an
-    // agent acting on behalf of a human end user who must claim/confirm the
-    // registration. This site has no end user in that sense — /api/admin is
-    // the operator's own tooling reading the operator's own data — and
-    // building a real claim ceremony would mean adding this site's first-ever
-    // login system just to satisfy an external checker's expectations for a
-    // scenario that doesn't apply here. Decision recorded in
-    // docs/agent-readiness.md: keep the real, working, gated-registration
-    // endpoint as-is; accept that the "complete registration method" check
-    // may not pass, rather than build a fake human-delegation flow with no
-    // real human delegator. No `claim_uri`/`events_supported` for the same
-    // reason — there is no claim ceremony or revocation-event stream to link.
+    // auth.md (https://github.com/workos/auth.md) agent-registration extension —
+    // the FULL canonical service_auth flow (fetched and read in full, not
+    // summarized): registration only needs a login_hint, a human confirms a
+    // device-code-style claim, and the agent then holds a service-signed
+    // identity_assertion (credential_types below) re-exchanged via the
+    // jwt-bearer grant. `register_uri` mirrors `identity_endpoint`;
+    // `revocation_uri`/`credential_types_supported` mirror their `*_endpoint`/
+    // `credential_types` counterparts — same real values, extra aliases for
+    // checkers that look for either name. No `identity_assertion.
+    // assertion_types_supported` (ID-JAG) and no `anonymous` block: this site
+    // doesn't support those identity types, and won't advertise flows that
+    // aren't real.
     agent_auth: {
       skill: `${ISSUER}/auth.md`,
       identity_endpoint: `${ISSUER}/agent/identity`,
       register_uri: `${ISSUER}/agent/identity`,
+      claim_endpoint: `${ISSUER}/agent/identity/claim`,
+      claim_uri: `${ISSUER}/agent/identity/claim`,
       identity_types_supported: ['service_auth'],
-      credential_types: ['client_secret'],
-      credential_types_supported: ['client_secret'],
+      credential_types: ['identity_assertion'],
+      credential_types_supported: ['identity_assertion'],
       revocation_endpoint: `${ISSUER}/oauth/revoke`,
       revocation_uri: `${ISSUER}/oauth/revoke`,
     },

@@ -1,258 +1,214 @@
 # auth.md
 
-This file tells AI agents how to authenticate with DermaScope.ai's one
-protected API resource. There is no end-user login anywhere on this site —
-every flow below is machine-to-machine: an agent, script, or backend service
-acting on behalf of its operator, not a human signing in through a browser.
+You are an agent. DermaScope.ai supports **agentic registration**: discover → register → claim → exchange for an access_token → call the API → handle revocation. This is the complete, real, working flow — every endpoint and example below is live on this domain, not illustrative.
 
-Everything in this document is self-contained: every endpoint, claim, and
-example below is stated directly, with real values, not by reference to
-another document. (The same values are *also* published as structured
-metadata at `/.well-known/oauth-authorization-server` and
-`/.well-known/oauth-protected-resource`, for programmatic cross-checking —
-but nothing here depends on fetching those.)
+There is exactly one protected resource on this site: `GET /api/admin/submissions` (Early Access form submissions). There is exactly one identity type: **`service_auth`**.
 
-## How an agent registers — overview
+## Step 1 — Discover
 
-1. Obtain an **initial access token** from DermaScope.ai's operator
-   (out-of-band — email, a shared secrets manager, etc.). There is no
-   open self-service signup: a human decides who gets to hold a credential
-   capable of reading Early Access submissions, before anything below is
-   automated.
-2. `POST` to the **registration endpoint** with that initial access token
-   to obtain a `client_id` and `client_secret`.
-3. Exchange the `client_id`/`client_secret` for a bearer **access token**
-   at the **token endpoint**.
-4. Use the access token against the one protected resource,
-   `GET /api/admin/submissions`.
-5. Optionally revoke the access token (or ask the operator to revoke the
-   whole identity) when it's no longer needed.
-
-Each step is specified in full below.
-
-## Registration endpoint (`register_uri`)
-
-```
-https://dermascope.ai/agent/identity
+The 401 response from the protected resource carries a `WWW-Authenticate` header naming the resource metadata:
+```http
+HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Bearer resource_metadata="https://dermascope.ai/.well-known/oauth-protected-resource"
 ```
 
-`POST` requests here, authenticated with an initial access token, create a
-new `service_auth` identity and return its credentials. This is the literal
-value of `agent_auth.register_uri` (and `agent_auth.identity_endpoint`, the
-same endpoint under an alternate name) in the authorization server metadata
-— restated here directly so this document stands on its own.
-
-## Supported identity types
-
-| Identity type | Supported | Notes |
-|---|---|---|
-| `service_auth` | **Yes** | A secret-based credential (`client_id` + `client_secret`), either self-registered via the endpoint above or provisioned directly by the operator. The only method this site offers. |
-| `identity_assertion` | No | Would require federating to an external identity provider (ID-JAG). No such provider is integrated. |
-| `anonymous` | No | This resource returns applicant PII (Early Access submissions); there is no anonymous-access tier. |
-
-## Supported credential types
-
-| Credential type | Supported | Description |
-|---|---|---|
-| `client_secret` | **Yes** | An opaque bearer secret string, issued once at registration, paired with a `client_id`. Presented via HTTP Basic auth or as a form field when requesting a token. This is the only credential type this site issues — there is no client certificate, no signed-JWT-assertion credential, and no API-key-only mode. |
-
-## Required claims
-
-**In the registration request** (`POST` to the registration endpoint
-above), the request body must include:
-
-| Field | Required | Value |
-|---|---|---|
-| `identity_type` | **Yes** | Must be the literal string `"service_auth"` — any other value is rejected with `400 unsupported_identity_type`. |
-| `client_name` | No | A free-text label for your records (e.g. `"my-agent"`). Defaults to `"unnamed-agent"` if omitted. |
-
-**In the issued access token** (a JWT, signed RS256), the payload always
-carries these claims:
-
-| Claim | Meaning | Example |
-|---|---|---|
-| `iss` | Issuer — always `https://dermascope.ai` | `"https://dermascope.ai"` |
-| `sub` | Subject — the `client_id` this token was issued to | `"agt_3f9c2b1a..."` |
-| `aud` | Audience — the one protected resource this token is valid for | `"https://dermascope.ai/api/admin"` |
-| `scope` | Space-delimited granted scopes | `"admin:submissions:read"` |
-| `iat` | Issued-at, Unix timestamp | `1785160403` |
-| `exp` | Expiry, Unix timestamp — always `iat + 3600` (1 hour) | `1785164003` |
-| `jti` | Unique token ID — used to look it up if revoked (see *Credential revocation flow*) | `"e7f3dab8-..."` |
-
-A client verifying the token independently (rather than calling the
-protected resource and trusting its `401`) fetches the public key from
-`https://dermascope.ai/.well-known/jwks.json` and checks `iss`, `aud`, and
-`exp` match the values above.
-
-## Token endpoint
-
+### 1a. Fetch the Protected Resource Metadata
+```http
+GET /.well-known/oauth-protected-resource
 ```
-https://dermascope.ai/oauth/token
-```
-
-Standard OAuth 2.0 `client_credentials` grant (RFC 6749 §4.4). Accepts
-client credentials via HTTP Basic auth or as `client_id`/`client_secret`
-form fields. There is no other grant type, no authorization-code/redirect
-flow, and no refresh token — request a fresh token from this same endpoint
-whenever the current one expires.
-
-## Revocation endpoint
-
-```
-https://dermascope.ai/oauth/revoke
-```
-
-RFC 7009 token revocation. See *Credential revocation flow* below for the
-full request/response and for how to revoke an entire identity (not just
-one token).
-
-## Step-by-step registration instructions
-
-**Step 1 — Get an initial access token.** Ask DermaScope.ai's operator for
-one. This is the only manual, human-mediated step; everything from Step 2
-onward is a normal HTTP call you make yourself.
-
-**Step 2 — Register.** `POST` to the registration endpoint
-(`https://dermascope.ai/agent/identity`) with that token in the
-`Authorization` header and `{"identity_type":"service_auth"}` (plus an
-optional `client_name`) as the JSON body. See the complete example below.
-
-**Step 3 — Store the returned `client_secret` immediately.** It's returned
-exactly once, in the Step 2 response, and cannot be retrieved again. If
-it's lost, repeat Step 2 to register a new identity (the operator can
-revoke the orphaned old one — see *Credential revocation flow*).
-
-**Step 4 — Request an access token.** `POST` to the token endpoint
-(`https://dermascope.ai/oauth/token`) with `grant_type=client_credentials`
-and the `client_id`/`client_secret` from Step 2/3.
-
-**Step 5 — Call the protected resource.** `GET
-https://dermascope.ai/api/admin/submissions` with `Authorization: Bearer
-<access_token>` from Step 4.
-
-**Step 6 — Repeat Step 4 when the token expires** (every hour). The
-`client_id`/`client_secret` from Step 2/3 don't expire on their own — reuse
-them for every new token request.
-
-## Complete example request and response
-
-**Registration** (Step 2):
-```
-POST /agent/identity HTTP/1.1
-Host: dermascope.ai
-Authorization: Bearer <initial access token, given to you out-of-band by the operator>
-Content-Type: application/json
-
-{"identity_type":"service_auth","client_name":"my-agent"}
-```
-```
-HTTP/1.1 201 Created
-Content-Type: application/json
-
+```json
 {
-  "identity_type": "service_auth",
-  "client_id": "agt_3f9c2b1a8e7d4c6f",
-  "client_secret": "kQ7n2Z...redacted-42-char-secret...J9pR",
-  "scopes": ["admin:submissions:read"]
+  "resource": "https://dermascope.ai/api/admin",
+  "authorization_servers": ["https://dermascope.ai"],
+  "scopes_supported": ["admin:submissions:read"],
+  "bearer_methods_supported": ["header"]
 }
 ```
 
-**Token request** (Step 4):
+### 1b. Fetch the Authorization Server metadata
+```http
+GET https://dermascope.ai/.well-known/oauth-authorization-server
 ```
-POST /oauth/token HTTP/1.1
-Host: dermascope.ai
-Authorization: Basic YWd0XzNmOWMyYjFhOGU3ZDRjNmY6a1E3bjJa...
-Content-Type: application/x-www-form-urlencoded
+```json
+{
+  "issuer": "https://dermascope.ai",
+  "token_endpoint": "https://dermascope.ai/oauth/token",
+  "jwks_uri": "https://dermascope.ai/.well-known/jwks.json",
+  "grant_types_supported": [
+    "client_credentials",
+    "urn:workos:agent-auth:grant-type:claim",
+    "urn:ietf:params:oauth:grant-type:jwt-bearer"
+  ],
+  "scopes_supported": ["admin:submissions:read"],
+  "revocation_endpoint": "https://dermascope.ai/oauth/revoke",
+  "agent_auth": {
+    "skill": "https://dermascope.ai/auth.md",
+    "identity_endpoint": "https://dermascope.ai/agent/identity",
+    "register_uri": "https://dermascope.ai/agent/identity",
+    "claim_endpoint": "https://dermascope.ai/agent/identity/claim",
+    "claim_uri": "https://dermascope.ai/agent/identity/claim",
+    "identity_types_supported": ["service_auth"],
+    "credential_types": ["identity_assertion"],
+    "revocation_endpoint": "https://dermascope.ai/oauth/revoke",
+    "revocation_uri": "https://dermascope.ai/oauth/revoke"
+  }
+}
+```
 
-grant_type=client_credentials
-```
-```
-HTTP/1.1 200 OK
+- `agent_auth.identity_endpoint` (`register_uri` is the same endpoint, alternate name) — where you POST to register (Step 2).
+- `agent_auth.claim_endpoint` (`claim_uri`, same endpoint) — where you re-mint a `user_code` if the current one expires (Step 3c).
+- `agent_auth.identity_types_supported` — `["service_auth"]` only. This site has no external identity-provider relationship (no `identity_assertion`/ID-JAG) and no anonymous-access tier for a resource returning applicant PII — both are correctly absent, not omitted by mistake.
+- `agent_auth.credential_types` — `["identity_assertion"]`: the credential you end up holding after a successful claim (Step 4) is a service-signed JWT, not a client_secret.
+- `token_endpoint` / `revocation_endpoint` — standard RFC 8414 / RFC 7009 fields, used in Steps 5, 6, and Revocation.
+
+## Step 2 — Register
+
+```http
+POST /agent/identity
 Content-Type: application/json
 
+{ "type": "service_auth", "login_hint": "you@example.com" }
+```
+
+`login_hint` is the email of the human who will confirm this registration — DermaScope.ai's operator. The call itself needs no authentication; nothing sensitive is granted here.
+
+Response (`200`):
+```json
 {
-  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjBmZjUzN2NjMWE3NDdjOGQifQ.eyJzY29wZSI6ImFkbWluOnN1Ym1pc3Npb25zOnJlYWQiLCJpYXQiOjE3ODUxNjA0MDMsImV4cCI6MTc4NTE2NDAwMywiYXVkIjoiaHR0cHM6Ly9kZXJtYXNjb3BlLmFpL2FwaS9hZG1pbiIsImlzcyI6Imh0dHBzOi8vZGVybWFzY29wZS5haSIsInN1YiI6ImFndF8zZjljMmIxYThlN2Q0YzZmIiwianRpIjoiZTdmM2RhYjgtMDMzMy00ZmIzLTkxMzctNTBkMmM3ZDY0MmNiIn0.signature-omitted",
+  "registration_id": "reg_ad146cc59c07cf24713cdefa",
+  "registration_type": "service_auth",
+  "claim_url": "https://dermascope.ai/agent/identity/claim",
+  "claim_token": "clm_c992a5313c4d1b6364001fce",
+  "claim_token_expires": "2026-07-29T07:46:22.072Z",
+  "post_claim_scopes": ["admin:submissions:read"],
+  "claim": {
+    "user_code": "449073",
+    "expires_in": 600,
+    "verification_uri": "https://dermascope.ai/login?return_to=%2Fclaim%3Fclaim_attempt_token%3Dcat_bb7a18e2dc01ae014fe99110",
+    "interval": 5
+  }
+}
+```
+
+`claim_token` is yours to hold (used for polling in Step 3) — never show it to the human. `claim.user_code` is what you hand to the human — never poll with it. `claim_token_expires` is the outer 24-hour window for the whole registration; `claim.expires_in` (600s) is just the current `user_code`'s window, which you can refresh (Step 3c) as many times as needed within the outer window.
+
+## Step 3 — Claim ceremony
+
+The end goal: a signed-in human confirms the `user_code` you hand them. The shape (`user_code`, `verification_uri`, `expires_in`, `interval`) borrows from RFC 8628 device authorization.
+
+### 3a. Hand off to the human
+
+Surface `claim.verification_uri` and `claim.user_code` together:
+
+> Open this link, sign in, and enter this code: **449073**
+> https://dermascope.ai/login?return_to=...
+
+They will: open the link, sign in as DermaScope.ai's operator, land on a page confirming which agent registered (`login_hint`) and what it's requesting (`post_claim_scopes`), type the code, and submit.
+
+### 3b. Poll for completion
+
+Poll `token_endpoint` with the profile-specific claim grant:
+```http
+POST /oauth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=urn:workos:agent-auth:grant-type:claim&claim_token=clm_c992a5313c4d1b6364001fce
+```
+
+While waiting:
+```json
+{ "error": "authorization_pending" }
+```
+On success — a standard token response, plus the `identity_assertion` extension:
+```json
+{
+  "access_token": "eyJhbGciOiJSUzI1NiIs...",
   "token_type": "Bearer",
   "expires_in": 3600,
-  "scope": "admin:submissions:read"
+  "scope": "admin:submissions:read",
+  "identity_assertion": "eyJhbGciOiJSUzI1NiIs...",
+  "assertion_expires": "2026-08-27T07:47:12.000Z"
 }
 ```
+Use `access_token` immediately (Step 5). Cache `identity_assertion` — it's valid 30 days and is what you re-exchange for fresh access tokens without repeating this ceremony (Step 4).
 
-**Calling the protected resource** (Step 5):
+Honor `interval` (5s): polling faster returns `{"error":"slow_down"}`, and each `slow_down` adds 5s to the required interval.
+
+### 3c. If the code expires before the human finishes
+
+```json
+{ "error": "expired_token" }
 ```
-GET /api/admin/submissions HTTP/1.1
-Host: dermascope.ai
-Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
-```
-```
-HTTP/1.1 200 OK
+Call `claim_endpoint` with the same `claim_token` to mint a fresh code (works any time within the 24-hour outer window):
+```http
+POST /agent/identity/claim
 Content-Type: application/json
 
+{ "claim_token": "clm_c992a5313c4d1b6364001fce" }
+```
+```json
 {
-  "count": 1,
-  "submissions": [
-    { "timestamp": "2026-07-27T10:15:00.000Z", "name": "Dr. Jane Doe", "email": "jane@clinic.example", "organization": "Example Clinic" }
-  ]
+  "registration_id": "reg_ad146cc59c07cf24713cdefa",
+  "claim_attempt_id": "cat_...",
+  "status": "initiated",
+  "expires_at": "2026-07-29T07:46:22.072Z",
+  "claim_attempt": { "user_code": "281905", "expires_in": 600, "verification_uri": "https://dermascope.ai/login?...", "interval": 5 }
 }
 ```
-Without a valid bearer token, this same call returns:
-```
-HTTP/1.1 401 Unauthorized
-WWW-Authenticate: Bearer realm="admin", error="invalid_request"
-Content-Type: application/json
+Hand the new `user_code`/`verification_uri` to the human and resume polling (3b). If the 24-hour outer window has closed instead, this returns `410 claim_expired` — restart at Step 2.
 
-{"error":"invalid_request","error_description":"Missing bearer token."}
-```
+## Step 4 — Re-exchange the identity_assertion
 
-## Credential revocation flow
-
-**Revoking one access token** (RFC 7009) — useful within that token's
-1-hour lifetime, e.g. if it leaked. Requires the same client credentials
-that obtained the token:
-```
-POST /oauth/revoke HTTP/1.1
-Host: dermascope.ai
-Authorization: Basic YWd0XzNmOWMyYjFhOGU3ZDRjNmY6a1E3bjJa...
+Once claimed, don't repeat Steps 2–3 for every new access token — exchange the cached `identity_assertion` via the RFC 7523 JWT-bearer grant:
+```http
+POST /oauth/token
 Content-Type: application/x-www-form-urlencoded
 
-token=eyJhbGciOiJSUzI1NiIs...
+grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=eyJhbGciOiJSUzI1NiIs...
 ```
+```json
+{ "access_token": "eyJhbGciOiJSUzI1NiIs...", "token_type": "Bearer", "expires_in": 3600, "scope": "admin:submissions:read" }
 ```
-HTTP/1.1 200 OK
-```
-(Always `200`, per RFC 7009 §2.2, whether or not the token was found or
-already invalid — so this response never confirms whether a given token
-value exists.) Once revoked, that specific token immediately fails on the
-protected resource with `401 invalid_token`, `error_description: "Token has
-been revoked."` — even though it hasn't expired yet.
+If this returns `invalid_grant`, the assertion expired or the registration was revoked — restart at Step 2.
 
-**Revoking a whole identity** (permanently stopping a `client_id` from ever
-obtaining a new token again — not just invalidating one already-issued
-token): there is no self-service API endpoint for this. Step by step:
-1. Contact DermaScope.ai's operator and give them the `client_id` to revoke.
-2. The operator marks that identity `revoked` in the registration store.
-3. Every subsequent `POST /oauth/token` request using that `client_id`
-   (with any secret) now fails with `401 invalid_client` — permanently,
-   not just until a token expires.
+## Step 5 — Use the access_token
 
-Tokens already issued before revocation remain valid until they naturally
-expire (≤ 1 hour) unless also individually revoked via the flow above.
+```http
+GET /api/admin/submissions
+Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+```
+```json
+{ "count": 1, "submissions": [ { "timestamp": "2026-07-27T10:15:00.000Z", "name": "Dr. Jane Doe", "email": "jane@clinic.example" } ] }
+```
+Tokens expire after 1 hour. Re-run Step 4 with the same `identity_assertion` for a new one — there is no separate refresh_token; the assertion replaces it.
 
 ## Errors
 
-| Situation | Response |
-|---|---|
-| `/api/admin/submissions` with no/garbled bearer token | `401 invalid_request` |
-| `/api/admin/submissions` with an expired/invalid/wrong-audience/revoked token | `401 invalid_token` |
-| Token valid but missing the required scope | `403 insufficient_scope` |
-| `/agent/identity` without a valid initial access token | `401 invalid_token` |
-| `/agent/identity` with an unsupported `identity_type` | `400 unsupported_identity_type` |
-| `/oauth/token` with unknown or wrong client credentials | `401 invalid_client` |
-| `/oauth/token` with a `grant_type` other than `client_credentials` | `400 unsupported_grant_type` |
+| Code | Where | What to do |
+|---|---|---|
+| `invalid_request` | `/agent/identity` | Body isn't `{"type":"service_auth","login_hint":"<email>"}`. Fix and retry. |
+| `invalid_claim_token` | `/agent/identity/claim` | `claim_token` wrong or unknown. Restart at Step 2. |
+| `claim_expired` (410) | `/agent/identity/claim` | The 24h outer window closed before the human finished. Restart at Step 2. |
+| `claimed_or_in_flight` (409) | `/agent/identity/claim` | Already claimed — go straight to Step 4. |
+| `authorization_pending` | `/oauth/token` (claim grant) | Human hasn't confirmed yet. Keep polling at `interval`. |
+| `expired_token` | `/oauth/token` (claim grant) | Current `user_code` expired. Call `/agent/identity/claim` for a fresh one (Step 3c). |
+| `slow_down` | `/oauth/token` (claim grant) | Polling too fast. Add 5s to `interval` and retry. |
+| `invalid_grant` | `/oauth/token` (jwt-bearer) | `identity_assertion` expired/revoked. Restart at Step 2. |
+| `invalid_client` | `/oauth/token` (client_credentials) | Not relevant to agents — this grant is for DermaScope.ai's own operator tooling only. |
+| `unsupported_grant_type` | `/oauth/token` | `grant_type` isn't one of the three listed in discovery. |
+| `invalid_request` / `invalid_token` / `insufficient_scope` | `/api/admin/submissions` | Missing, expired, or under-scoped bearer token. |
+
+## Revocation
+
+- **One access token** (RFC 7009): `POST /oauth/revoke` with `token=<access_token>` and, in the body, the still-valid `identity_assertion` for that same registration as proof of ownership:
+  ```http
+  POST /oauth/revoke
+  Content-Type: application/x-www-form-urlencoded
+
+  token=<access_token>&assertion=<identity_assertion>
+  ```
+  Always responds `200`, whether or not the token existed (RFC 7009 §2.2 — never confirms a token's existence).
+- **The whole identity** (stop it from ever getting a new access token again, not just one token): there is no self-service endpoint. Contact DermaScope.ai's operator with the `registration_id`; they mark it revoked. Every subsequent claim-grant or jwt-bearer exchange for that registration then fails with `invalid_grant`, permanently.
 
 ---
-Structured metadata (for automated cross-checking, not required reading):
-[`/.well-known/oauth-authorization-server`](/.well-known/oauth-authorization-server),
-[`/.well-known/oauth-protected-resource`](/.well-known/oauth-protected-resource),
-[`/.well-known/jwks.json`](/.well-known/jwks.json),
-[`/openapi.yaml`](/openapi.yaml), [`/docs/api.md`](/docs/api.md).
+Machine-readable references: [`/.well-known/oauth-authorization-server`](/.well-known/oauth-authorization-server), [`/.well-known/oauth-protected-resource`](/.well-known/oauth-protected-resource), [`/.well-known/jwks.json`](/.well-known/jwks.json), [`/openapi.yaml`](/openapi.yaml).
