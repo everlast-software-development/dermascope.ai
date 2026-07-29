@@ -194,14 +194,14 @@ function BeforeAfter() {
         }}
       >
         <img
-          src="/after.webp"
+          src="/after.webp?v=3"
           alt="Follow-up visit — after"
           draggable={false}
           loading="lazy"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
         />
         <img
-          src="/before.webp"
+          src="/before.webp?v=3"
           alt="Baseline visit — before"
           draggable={false}
           loading="lazy"
@@ -533,7 +533,7 @@ export default function WhyDermaScope() {
           </div>
           <div style={{ aspectRatio: '4/3', borderRadius: 24, overflow: 'hidden', border: '1px solid #DCECEF' }}>
             <img
-              src="/Clinical%20Workflow.webp?v=2"
+              src="/Clinical%20Workflow.webp?v=3"
               alt="Structured clinical workflow"
               loading="lazy"
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}

@@ -298,7 +298,7 @@ export default function PainPoints() {
                 style={isSmall ? { padding: '12px 0 0', justifyContent: 'center' } : undefined}
               >
                 <img
-                  src="/mobile_mockup_home.webp?v=2"
+                  src="/mobile_mockup_home.webp?v=3"
                   alt="DermaScope.ai mobile app"
                   loading="lazy"
                   className="ds-why-phone-img"

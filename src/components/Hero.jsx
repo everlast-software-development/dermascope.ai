@@ -112,35 +112,11 @@ function OrbitDot({ angle }) {
   )
 }
 
-const POPPINS_HREF =
-  'https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&display=swap'
-
-// Loads the Poppins stylesheet the same non-blocking way as index.html's Outfit
-// link (preload, then swap media to "all" once ready) instead of the render-
-// blocking @import this replaced. Guarded so remounting Hero never double-injects.
-function usePoppinsFont() {
-  useEffect(() => {
-    if (document.getElementById('poppins-font-stylesheet')) return
-    const preload = document.createElement('link')
-    preload.rel = 'preload'
-    preload.as = 'style'
-    preload.href = POPPINS_HREF
-    document.head.appendChild(preload)
-
-    const stylesheet = document.createElement('link')
-    stylesheet.id = 'poppins-font-stylesheet'
-    stylesheet.rel = 'stylesheet'
-    stylesheet.href = POPPINS_HREF
-    stylesheet.media = 'print'
-    stylesheet.onload = () => {
-      stylesheet.media = 'all'
-    }
-    document.head.appendChild(stylesheet)
-  }, [])
-}
+// Poppins (the hero font) is now loaded non-blocking from index.html's <head>
+// alongside Outfit, so it starts downloading at parse time rather than waiting
+// for this component to mount — improving hero text paint.
 
 export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed = 38 }) {
-  usePoppinsFont()
   const { isMobile, isTablet } = useResponsive()
   const stacked = isMobile || isTablet // phones + tablets drop the desktop's full-height column
 
@@ -415,7 +391,7 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
               )}
 
               <img
-                src="/hero-mockup.webp"
+                src="/hero-mockup.webp?v=3"
                 alt="DermaScope capture angles app screen"
                 fetchPriority="high"
                 width={1089}
@@ -436,7 +412,7 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
             <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               {orbitRings('min(46vw, 420px)', 'min(35vw, 320px)')}
               <img
-                src="/hero-mockup.webp"
+                src="/hero-mockup.webp?v=3"
                 alt="DermaScope capture angles app screen"
                 fetchPriority="high"
                 width={1089}
@@ -451,7 +427,7 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
             <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               {orbitRings('min(84vw, 330px)', 'min(64vw, 250px)')}
               <img
-                src="/hero-mockup.webp"
+                src="/hero-mockup.webp?v=3"
                 alt="DermaScope capture angles app screen"
                 fetchPriority="high"
                 width={1089}
