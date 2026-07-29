@@ -1164,17 +1164,20 @@ button {
 }
 
 /* Upright, pinned (non-animated) phone image — rises from the card bottom,
-   full natural width (no distortion), flush to the bottom edge. */
+   flush to the bottom edge. The asset is a SQUARE (1:1) render with the phone
+   already cropped at its bottom edge and transparent side margins, so we match
+   that ratio and use object-fit: contain to guarantee the phone keeps its true
+   proportions (never stretched, never cropped by CSS). */
 .ds-why-phone-img {
   position: relative;
   z-index: 2;
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: 960 / 662;
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
   filter: drop-shadow(0 14px 34px rgba(6, 22, 28, 0.4));
-  transform: scale(1.3);
-  transform-origin: bottom;
 }
 
 @media (max-width: 860px) {
