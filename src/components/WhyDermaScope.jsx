@@ -533,7 +533,7 @@ export default function WhyDermaScope() {
           </div>
           <div style={{ aspectRatio: '4/3', borderRadius: 24, overflow: 'hidden', border: '1px solid #DCECEF' }}>
             <img
-              src="/Clinical%20Workflow.webp"
+              src="/Clinical%20Workflow.webp?v=2"
               alt="Structured clinical workflow"
               loading="lazy"
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
