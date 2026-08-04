@@ -13,7 +13,7 @@ export const heroStats = [
 export const painPoints = [
   {
     title: 'Visually Complex Skin Conditions',
-    image: '/The%20Clinical%20Reality.webp?v=3',
+    image: '/The%20Clinical%20Reality.webp?v=4',
     body: 'Many skin conditions share similar visual characteristics, making accurate assessment and clinical decision-making more difficult.',
     tagsLabel: 'Examples',
     tags: [
@@ -27,7 +27,7 @@ export const painPoints = [
   },
   {
     title: 'Early Changes Are Easy to Miss',
-    image: '/Early%20Changes.webp?v=3',
+    image: '/Early%20Changes.webp?v=4',
     body: 'Subtle differences in color, borders, texture, or healing may indicate disease progression or treatment response, yet they can be difficult to detect consistently.',
     tagsLabel: 'Challenges',
     tags: [
@@ -40,7 +40,7 @@ export const painPoints = [
   },
   {
     title: 'Clinical Decisions Require More Than Images',
-    image: '/Clinical%20Decisions.webp?v=3',
+    image: '/Clinical%20Decisions.webp?v=4',
     body: 'Effective skin assessment often depends on combining clinical history, visual findings, previous records, and professional expertise—not image interpretation alone.',
     tagsLabel: 'Clinical Inputs',
     tags: [
@@ -66,7 +66,7 @@ export const painPoints = [
   },
   {
     title: 'Tracking Progress Is Often Subjective',
-    image: '/Tracking%20Progress.webp?v=3',
+    image: '/Tracking%20Progress.webp?v=4',
     body: 'Without standardized imaging and objective comparison, monitoring healing, disease progression, and treatment response can vary between clinicians and visits.',
     tagsLabel: 'Monitoring',
     tags: [
@@ -79,7 +79,7 @@ export const painPoints = [
   },
   {
     title: 'Clinical Data Is Often Fragmented',
-    image: '/Clinical%20Data.webp?v=3',
+    image: '/Clinical%20Data.webp?v=4',
     body: 'Images, clinical notes, follow-up records, and patient information are frequently stored across multiple systems, making collaboration and continuity of care more difficult.',
     tagsLabel: 'Fragmented Data',
     tags: [
@@ -92,7 +92,7 @@ export const painPoints = [
   },
   {
     title: 'AI Is Advancing Rapidly—But Clinical Trust Matters',
-    image: '/AI%20Is%20Advancing.webp?v=3',
+    image: '/AI%20Is%20Advancing.webp?v=4',
     body: 'Healthcare professionals need AI that is transparent, explainable, and designed to support clinical decision-making—not replace professional expertise.',
     tagsLabel: 'What Clinicians Need',
     highlightTags: true,
@@ -182,22 +182,22 @@ export const steps = [
   {
     title: '01. Capture',
     body: 'Upload 3 standardized images (90°, 75°, and 40°) using a smartphone, dermatoscope, or clinical camera.',
-    media: { type: 'image', src: '/Capture.webp?v=3', alt: 'Capturing standardized skin images from multiple angles' },
+    media: { type: 'image', src: '/Capture.webp?v=4', alt: 'Capturing standardized skin images from multiple angles' },
   },
   {
     title: '02. AI Analysis',
     body: 'AI analyzes the images, detects visual patterns, and supports the assessment of 300+ skin conditions.',
-    media: { type: 'image', src: '/AI%20Analysis.webp?v=3', alt: 'AI analyzing images and detecting visual patterns' },
+    media: { type: 'image', src: '/AI%20Analysis.webp?v=4', alt: 'AI analyzing images and detecting visual patterns' },
   },
   {
     title: '03. Generate Reports',
     body: 'Create structured clinical reports, SOAP notes, patient summaries, and ICD / CPT Coding support in seconds.',
-    media: { type: 'image', src: '/Generate%20Reports.webp?v=3', alt: 'Generating structured clinical reports' },
+    media: { type: 'image', src: '/Generate%20Reports.webp?v=4', alt: 'Generating structured clinical reports' },
   },
   {
     title: '04. Monitor Progress',
     body: 'Compare visits, track treatment response, and monitor disease progression with before-and-after analysis.',
-    media: { type: 'image', src: '/Monitor%20Progress.webp?v=3', alt: 'Monitoring patient progress and treatment response over time' },
+    media: { type: 'image', src: '/Monitor%20Progress.webp?v=4', alt: 'Monitoring patient progress and treatment response over time' },
   },
 ]
 

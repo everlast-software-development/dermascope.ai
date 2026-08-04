@@ -391,7 +391,7 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
               )}
 
               <img
-                src="/hero-mockup.webp?v=3"
+                src="/hero-mockup.webp?v=4"
                 alt="DermaScope capture angles app screen"
                 fetchPriority="high"
                 width={1089}
@@ -412,7 +412,7 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
             <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               {orbitRings('min(46vw, 420px)', 'min(35vw, 320px)')}
               <img
-                src="/hero-mockup.webp?v=3"
+                src="/hero-mockup.webp?v=4"
                 alt="DermaScope capture angles app screen"
                 fetchPriority="high"
                 width={1089}
@@ -427,7 +427,7 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
             <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               {orbitRings('min(84vw, 330px)', 'min(64vw, 250px)')}
               <img
-                src="/hero-mockup.webp?v=3"
+                src="/hero-mockup.webp?v=4"
                 alt="DermaScope capture angles app screen"
                 fetchPriority="high"
                 width={1089}

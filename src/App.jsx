@@ -18,6 +18,7 @@ const DemoForm = lazy(() => import('./components/DemoForm'))
 // import BattleWithAI from './components/BattleWithAI' // temporarily hidden
 const WhoItsFor = lazy(() => import('./components/WhoItsFor'))
 const FAQ = lazy(() => import('./components/FAQ'))
+const PromoBanner = lazy(() => import('./components/PromoBanner'))
 const CinematicFooter = lazy(() => import('./components/ui/CinematicFooter'))
 
 export default function App() {
@@ -64,6 +65,17 @@ export default function App() {
           <LazyMount>
             <Suspense fallback={null}>
               <FAQ />
+            </Suspense>
+          </LazyMount>
+          {/* Promo banner — last block of content, directly above the footer.
+              Tighter rootMargin than the shared default: every LazyMount wrapper
+              is zero-height until its section renders, so on first paint they all
+              sit stacked at the fold and the default 800px margin mounts the
+              whole page at once — which pulled this banner's thumbnails into the
+              initial load. */}
+          <LazyMount rootMargin="0px">
+            <Suspense fallback={null}>
+              <PromoBanner />
             </Suspense>
           </LazyMount>
         </main>
