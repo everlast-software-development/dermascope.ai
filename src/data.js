@@ -53,7 +53,7 @@ export const painPoints = [
   },
   {
     title: 'Documentation Is Time-Consuming',
-    image: '/Documentation.webp?v=3',
+    image: '/Documentation.webp?v=4',
     body: 'Clinical documentation must be accurate, structured, and consistent to support patient care, communication, research, and regulatory requirements.',
     tagsLabel: 'Documentation',
     tags: [
