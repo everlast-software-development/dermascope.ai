@@ -1,8 +1,9 @@
-import React, { lazy, Suspense } from 'react'
+import React, { lazy, Suspense, useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import App from './App.jsx'
 import { registerWebMcpTools } from './lib/webmcp.js'
+import { initAnalytics, trackPageView } from './lib/analytics.js'
 import './index.css'
 
 // Secondary routes are only ever needed after a navigation, so they're kept
@@ -13,10 +14,24 @@ const OperatorLogin = lazy(() => import('./pages/OperatorLogin.jsx'))
 const OperatorClaim = lazy(() => import('./pages/OperatorClaim.jsx'))
 
 registerWebMcpTools()
+initAnalytics()
+
+// Fires a GA4 pageview on the initial load and on every client-side route
+// change. Lives inside <BrowserRouter> so it can read the current location,
+// but outside <Routes> so one instance covers every route without each page
+// needing its own tracking call.
+function AnalyticsListener() {
+  const location = useLocation()
+  useEffect(() => {
+    trackPageView(`${location.pathname}${location.search}`)
+  }, [location.pathname, location.search])
+  return null
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
+      <AnalyticsListener />
       <Suspense fallback={null}>
         <Routes>
           <Route path="/" element={<App />} />
