@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useResponsive } from '../hooks/useResponsive'
 import SectionSubtitle from './SectionSubtitle'
 import VideoModal from './VideoModal'
-import { trackEvent } from '../lib/analytics'
 import './Hero.css'
 
 // "How It Works" walkthrough video (hosted on Cloudflare R2).
@@ -243,7 +242,7 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
         )}
 
         {!stacked && (
-          <a href="#demo" onClick={() => trackEvent('Early Access', 'Join Early Access Click', 'Hero Nav')} className="ds-hbtn" style={{ background: 'linear-gradient(90deg, #007176, #17C7CC)', color: '#ffffff', fontWeight: 600, fontSize: 14.5, padding: '11px 22px', borderRadius: 999, boxShadow: '0 6px 18px rgba(0,20,24,0.30)', textDecoration: 'none' }}>Join Early Access</a>
+          <a href="#demo" className="ds-hbtn" style={{ background: 'linear-gradient(90deg, #007176, #17C7CC)', color: '#ffffff', fontWeight: 600, fontSize: 14.5, padding: '11px 22px', borderRadius: 999, boxShadow: '0 6px 18px rgba(0,20,24,0.30)', textDecoration: 'none' }}>Join Early Access</a>
         )}
 
         {/* Mobile / tablet hamburger */}
@@ -307,7 +306,7 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
           {navItems.map((l) => (
             <a key={l.href} href={l.href} onClick={() => setMenuOpen(false)} className="ds-hnav-link" style={{ color: '#eaf7f9', fontSize: 20, fontWeight: 600, textDecoration: 'none' }}>{l.label}</a>
           ))}
-          <a href="#demo" onClick={() => { setMenuOpen(false); trackEvent('Early Access', 'Join Early Access Click', 'Hero Mobile Menu') }} className="ds-hbtn" style={{ marginTop: 8, background: 'linear-gradient(90deg, #007176, #17C7CC)', color: '#ffffff', fontWeight: 700, fontSize: 16, padding: '14px 34px', borderRadius: 999, textDecoration: 'none' }}>Join Early Access</a>
+          <a href="#demo" onClick={() => setMenuOpen(false)} className="ds-hbtn" style={{ marginTop: 8, background: 'linear-gradient(90deg, #007176, #17C7CC)', color: '#ffffff', fontWeight: 700, fontSize: 16, padding: '14px 34px', borderRadius: 999, textDecoration: 'none' }}>Join Early Access</a>
         </div>
       )}
 
@@ -356,15 +355,14 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
               From everyday dermatology to the most challenging and complex skin conditions, DermaScope.ai transforms clinical images into actionable intelligence&mdash;helping physicians detect critical visual patterns, prioritize high-risk findings, and make more informed clinical decisions.
             </p>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start', flexWrap: 'wrap', gap: isMobile ? 14 : 22, marginTop: 4 }}>
-              <a href="#demo" onClick={() => trackEvent('Early Access', 'Join Early Access Click', 'Hero Primary')} className="ds-hbtn" style={{ background: 'linear-gradient(90deg, #007176, #17C7CC)', color: '#ffffff', fontWeight: 600, fontSize: 15.5, padding: '15px 32px', borderRadius: 999, boxShadow: '0 10px 28px rgba(0,20,24,0.35)', textDecoration: 'none' }}>Join Early Access</a>
+              <a href="#demo" className="ds-hbtn" style={{ background: 'linear-gradient(90deg, #007176, #17C7CC)', color: '#ffffff', fontWeight: 600, fontSize: 15.5, padding: '15px 32px', borderRadius: 999, boxShadow: '0 10px 28px rgba(0,20,24,0.35)', textDecoration: 'none' }}>Join Early Access</a>
               {/* "Watch Video" trigger — TEMPORARILY DISABLED, hidden for now.
                   Do NOT delete: uncomment the block below to bring it back.
                   It opens the VideoModal at the bottom of this file via
                   setVideoOpen(true); that modal + HOW_IT_WORKS_VIDEO stay wired
-                  up, so re-enabling needs no other change. GA4 tracking is
-                  already wired into its onClick below. */}
+                  up, so re-enabling needs no other change. */}
               {/*
-              <button type="button" onClick={() => { setVideoOpen(true); trackEvent('Navigation', 'Watch Video') }} className="ds-hsecondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, color: '#eaf7f9', fontWeight: 600, fontSize: 15.5, fontFamily: 'inherit', lineHeight: 'inherit', textDecoration: 'none', background: 'transparent', border: 'none', padding: 0, margin: 0, cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}>
+              <button type="button" onClick={() => setVideoOpen(true)} className="ds-hsecondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, color: '#eaf7f9', fontWeight: 600, fontSize: 15.5, fontFamily: 'inherit', lineHeight: 'inherit', textDecoration: 'none', background: 'transparent', border: 'none', padding: 0, margin: 0, cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}>
                 <span className="ds-hplay" style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.25)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="14" height="16" viewBox="0 0 14 16" fill="none"><path d="M1 1.8v12.4c0 .8.9 1.3 1.6.9l10-6.2c.6-.4.6-1.4 0-1.8l-10-6.2C1.9.5 1 1 1 1.8z" fill="#7fd8e8" /></svg>
                 </span>

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useResponsive } from '../hooks/useResponsive'
-import { trackEvent } from '../lib/analytics'
 import './Hero.css'
 
 // Reusable site header for sub-pages (e.g. Privacy Policy). Visually identical
@@ -81,7 +80,6 @@ export default function SiteHeader() {
         {!stacked && (
           <a
             href="/#demo"
-            onClick={() => trackEvent('Early Access', 'Join Early Access Click', 'Site Header Nav')}
             className="ds-hbtn"
             style={{
               background: 'linear-gradient(90deg, #007176, #17C7CC)',
@@ -159,7 +157,7 @@ export default function SiteHeader() {
               {l.label}
             </a>
           ))}
-          <a href="/#demo" onClick={() => { setMenuOpen(false); trackEvent('Early Access', 'Join Early Access Click', 'Site Header Mobile Menu') }} className="ds-hbtn" style={{ marginTop: 8, background: 'linear-gradient(90deg, #007176, #17C7CC)', color: '#ffffff', fontWeight: 700, fontSize: 16, padding: '14px 34px', borderRadius: 999, textDecoration: 'none' }}>
+          <a href="/#demo" onClick={() => setMenuOpen(false)} className="ds-hbtn" style={{ marginTop: 8, background: 'linear-gradient(90deg, #007176, #17C7CC)', color: '#ffffff', fontWeight: 700, fontSize: 16, padding: '14px 34px', borderRadius: 999, textDecoration: 'none' }}>
             Join Early Access
           </a>
         </div>

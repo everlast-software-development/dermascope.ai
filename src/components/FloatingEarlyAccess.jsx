@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Sparkles, X } from 'lucide-react'
 import SectionSubtitle from './SectionSubtitle'
 import { useResponsive } from '../hooks/useResponsive'
-import { trackEvent } from '../lib/analytics'
 import './FloatingEarlyAccess.css'
 
 // The form (and its country/phone-input dependency) is only needed once the
@@ -62,7 +61,7 @@ export default function FloatingEarlyAccess() {
         <span className="ds-cta-float">
           <button
             type="button"
-            onClick={() => { setOpen(true); trackEvent('Early Access', 'Join Early Access Click', 'Floating CTA') }}
+            onClick={() => setOpen(true)}
             aria-label="Join Early Access"
             className="ds-floating-cta"
             style={{

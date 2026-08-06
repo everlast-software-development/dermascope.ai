@@ -1,5 +1,4 @@
 import { useResponsive } from '../hooks/useResponsive'
-import { trackEvent } from '../lib/analytics'
 
 // Full-bleed promo banner that sits directly above the footer: logo + oversized
 // headline + supporting copy + pill CTA on the left, a single device-mockup
@@ -61,14 +60,12 @@ const BADGES = [
     alt: 'Download on the App Store',
     ratio: 119.66407 / 40,
     href: 'https://apps.apple.com/app/id6787643958',
-    action: 'App Store Click',
   },
   {
     src: '/google-play-badge-dark.png',
     alt: 'Get it on Google Play',
     ratio: 550 / 154,
     href: 'https://play.google.com/store/apps/details?id=com.dermascopeai.app',
-    action: 'Google Play Click',
   },
 ]
 
@@ -238,7 +235,6 @@ export default function PromoBanner() {
                 href={b.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => trackEvent('Download', b.action, 'Promo Banner')}
                 className="ds-store-badge"
                 style={{ width: pillW, height: pillH }}
               >

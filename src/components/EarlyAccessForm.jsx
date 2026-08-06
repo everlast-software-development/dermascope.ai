@@ -10,7 +10,6 @@ import {
 import 'react-international-phone/style.css'
 import { challengeOptions } from '../data'
 import { useResponsive, useMediaQuery } from '../hooks/useResponsive'
-import { trackEvent } from '../lib/analytics'
 
 // The multi-step "Join Early Access" form, extracted so it can be reused
 // verbatim by both the marketing section (DemoForm) and the floating drawer
@@ -867,13 +866,6 @@ export default function EarlyAccessForm({ onSuccess }) {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
 
-  // Fires once per mount — i.e. once per time this form actually becomes
-  // available to fill in, whether that's the always-on marketing section or
-  // a fresh instance of the floating drawer being opened.
-  useEffect(() => {
-    trackEvent('Early Access', 'Form Opened')
-  }, [])
-
   const setField = (name, val) => {
     setForm((f) => ({ ...f, [name]: val }))
     if (errors[name]) setErrors((e) => ({ ...e, [name]: undefined }))
@@ -986,7 +978,6 @@ export default function EarlyAccessForm({ onSuccess }) {
         )
       }
       setSubmitted(true)
-      trackEvent('Early Access', 'Form Submitted')
       if (typeof onSuccess === 'function') onSuccess()
     } catch (err) {
       setError(
