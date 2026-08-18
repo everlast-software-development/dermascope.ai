@@ -13,7 +13,7 @@ const navItems = [
   { label: 'How It Works', href: '/#how' },
   { label: 'Clinical Applications', href: '/#who' },
   { label: 'About', href: '/#challenge' },
-  { label: 'Contact', href: '/#demo' },
+  { label: 'Contact', href: '/#early-access' },
 ]
 
 export default function SiteHeader() {
@@ -79,7 +79,7 @@ export default function SiteHeader() {
 
         {!stacked && (
           <a
-            href="/#demo"
+            href="/#early-access"
             className="ds-hbtn"
             style={{
               background: 'linear-gradient(90deg, #007176, #17C7CC)',
@@ -157,7 +157,7 @@ export default function SiteHeader() {
               {l.label}
             </a>
           ))}
-          <a href="/#demo" onClick={() => setMenuOpen(false)} className="ds-hbtn" style={{ marginTop: 8, background: 'linear-gradient(90deg, #007176, #17C7CC)', color: '#ffffff', fontWeight: 700, fontSize: 16, padding: '14px 34px', borderRadius: 999, textDecoration: 'none' }}>
+          <a href="/#early-access" onClick={() => setMenuOpen(false)} className="ds-hbtn" style={{ marginTop: 8, background: 'linear-gradient(90deg, #007176, #17C7CC)', color: '#ffffff', fontWeight: 700, fontSize: 16, padding: '14px 34px', borderRadius: 999, textDecoration: 'none' }}>
             Join Early Access
           </a>
         </div>

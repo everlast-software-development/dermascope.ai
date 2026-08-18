@@ -14,7 +14,7 @@ export default function DemoForm() {
 
   return (
     <section
-      id="demo"
+      id="early-access"
       aria-label="Join Early Access"
       style={{
         ...section,

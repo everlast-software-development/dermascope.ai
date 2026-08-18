@@ -6,7 +6,7 @@ const links = [
   { label: 'How It Works', href: '#how', id: 'how' },
   { label: 'Clinical Applications', href: '#who', id: 'who' },
   { label: 'About', href: '#challenge', id: 'challenge' },
-  { label: 'Contact', href: '#demo', id: 'demo' },
+  { label: 'Contact', href: '#early-access', id: 'early-access' },
 ]
 
 export default function Navbar() {
@@ -82,7 +82,7 @@ export default function Navbar() {
 
         {/* RIGHT — actions */}
         <div className="ds-fn-actions">
-          <a href="#demo" className="ds-fn-demo">
+          <a href="#early-access" className="ds-fn-demo">
             Join Early Access
           </a>
         </div>
@@ -114,7 +114,7 @@ export default function Navbar() {
           </a>
         ))}
         <div className="ds-fn-overlay-actions">
-          <a href="#demo" className="ds-fn-demo" onClick={() => setMenuOpen(false)}>
+          <a href="#early-access" className="ds-fn-demo" onClick={() => setMenuOpen(false)}>
             Join Early Access
           </a>
         </div>

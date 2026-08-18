@@ -48,7 +48,7 @@ const navItems = [
   { label: 'How It Works', href: '#how' },
   { label: 'Clinical Applications', href: '#who' },
   { label: 'About', href: '#challenge' },
-  { label: 'Contact', href: '#demo' },
+  { label: 'Contact', href: '#early-access' },
 ]
 
 // Floating stat cards — content authored once so they can render either as the
@@ -242,7 +242,7 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
         )}
 
         {!stacked && (
-          <a href="#demo" className="ds-hbtn" style={{ background: 'linear-gradient(90deg, #007176, #17C7CC)', color: '#ffffff', fontWeight: 600, fontSize: 14.5, padding: '11px 22px', borderRadius: 999, boxShadow: '0 6px 18px rgba(0,20,24,0.30)', textDecoration: 'none' }}>Join Early Access</a>
+          <a href="#early-access" className="ds-hbtn" style={{ background: 'linear-gradient(90deg, #007176, #17C7CC)', color: '#ffffff', fontWeight: 600, fontSize: 14.5, padding: '11px 22px', borderRadius: 999, boxShadow: '0 6px 18px rgba(0,20,24,0.30)', textDecoration: 'none' }}>Join Early Access</a>
         )}
 
         {/* Mobile / tablet hamburger */}
@@ -306,7 +306,7 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
           {navItems.map((l) => (
             <a key={l.href} href={l.href} onClick={() => setMenuOpen(false)} className="ds-hnav-link" style={{ color: '#eaf7f9', fontSize: 20, fontWeight: 600, textDecoration: 'none' }}>{l.label}</a>
           ))}
-          <a href="#demo" onClick={() => setMenuOpen(false)} className="ds-hbtn" style={{ marginTop: 8, background: 'linear-gradient(90deg, #007176, #17C7CC)', color: '#ffffff', fontWeight: 700, fontSize: 16, padding: '14px 34px', borderRadius: 999, textDecoration: 'none' }}>Join Early Access</a>
+          <a href="#early-access" onClick={() => setMenuOpen(false)} className="ds-hbtn" style={{ marginTop: 8, background: 'linear-gradient(90deg, #007176, #17C7CC)', color: '#ffffff', fontWeight: 700, fontSize: 16, padding: '14px 34px', borderRadius: 999, textDecoration: 'none' }}>Join Early Access</a>
         </div>
       )}
 
@@ -355,7 +355,7 @@ export default function Hero({ showOrbit = true, floatCards = true, marqueeSpeed
               From everyday dermatology to the most challenging and complex skin conditions, DermaScope.ai transforms clinical images into actionable intelligence&mdash;helping physicians detect critical visual patterns, prioritize high-risk findings, and make more informed clinical decisions.
             </p>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start', flexWrap: 'wrap', gap: isMobile ? 14 : 22, marginTop: 4 }}>
-              <a href="#demo" className="ds-hbtn" style={{ background: 'linear-gradient(90deg, #007176, #17C7CC)', color: '#ffffff', fontWeight: 600, fontSize: 15.5, padding: '15px 32px', borderRadius: 999, boxShadow: '0 10px 28px rgba(0,20,24,0.35)', textDecoration: 'none' }}>Join Early Access</a>
+              <a href="#early-access" className="ds-hbtn" style={{ background: 'linear-gradient(90deg, #007176, #17C7CC)', color: '#ffffff', fontWeight: 600, fontSize: 15.5, padding: '15px 32px', borderRadius: 999, boxShadow: '0 10px 28px rgba(0,20,24,0.35)', textDecoration: 'none' }}>Join Early Access</a>
               {/* "Watch Video" trigger — TEMPORARILY DISABLED, hidden for now.
                   Do NOT delete: uncomment the block below to bring it back.
                   It opens the VideoModal at the bottom of this file via

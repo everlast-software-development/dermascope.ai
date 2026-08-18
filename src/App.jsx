@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import Hero from './components/Hero'
 import FloatingEarlyAccess from './components/FloatingEarlyAccess'
 import LazyMount from './components/LazyMount'
+import { useHashScroll } from './hooks/useHashScroll'
 
 // Everything below the hero is off-screen on first paint. Each section is its
 // own chunk, and LazyMount gates the actual dynamic import() behind an
@@ -22,6 +23,11 @@ const PromoBanner = lazy(() => import('./components/PromoBanner'))
 const CinematicFooter = lazy(() => import('./components/ui/CinematicFooter'))
 
 export default function App() {
+  // Makes /#early-access (and any other section deep link) land on the right
+  // section even on a cold load, where the section's chunk mounts after the
+  // browser has already given up on the hash.
+  useHashScroll()
+
   return (
     <>
       {/* Fluid layout: no min-width lock so tablet/mobile can reflow. Desktop
